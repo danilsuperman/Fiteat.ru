@@ -5,7 +5,7 @@ import {
   BarChart3, Tag, FileText, LogOut, Plus, Trash2,
   Eye, EyeOff, X, Users, TrendingUp, Check,
   DollarSign, ChevronDown, ChevronUp, Search,
-  Calendar, Settings, RefreshCw, Edit2, Star
+  Calendar, Settings, RefreshCw, Edit2, Star, Apple
 } from "lucide-react";
 
 const API = (p: string) => `/api${p}`;
@@ -964,6 +964,180 @@ function ReviewsTab({ token }: { token: string }) {
   );
 }
 
+/* ─── Snacks Tab ─── */
+function SnacksTab({ token }: { token: string }) {
+  const [snacks, setSnacks]       = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing]     = useState<any | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [form, setForm] = useState({ name:"", description:"", calories:"", proteins:"", fats:"", carbs:"", photoUrl:"", tags:"" });
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiFetch("/admin/snacks", token).then(setSnacks).catch(() => {}).finally(() => setLoading(false));
+  }, [token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name:"", description:"", calories:"", proteins:"", fats:"", carbs:"", photoUrl:"", tags:"" });
+    setShowModal(true);
+  };
+  const openEdit = (s: any) => {
+    setEditing(s);
+    setForm({ name:s.name, description:s.description||"", calories:String(s.calories), proteins:String(s.proteins), fats:String(s.fats), carbs:String(s.carbs), photoUrl:s.photo_url||"", tags:(s.tags||[]).join(", ") });
+    setShowModal(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = {
+        name: form.name, description: form.description,
+        calories: Number(form.calories), proteins: Number(form.proteins),
+        fats: Number(form.fats), carbs: Number(form.carbs),
+        photoUrl: form.photoUrl || undefined,
+        tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
+      };
+      if (editing) await apiFetch(`/admin/snacks/${editing.id}`, token, { method: "PUT", body: JSON.stringify(body) });
+      else await apiFetch("/admin/snacks", token, { method: "POST", body: JSON.stringify(body) });
+      setShowModal(false);
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const del = async (id: number) => {
+    if (!confirm("Удалить перекус?")) return;
+    await apiFetch(`/admin/snacks/${id}`, token, { method: "DELETE" });
+    load();
+  };
+
+  const toggle = async (id: number) => {
+    await apiFetch(`/admin/snacks/${id}/toggle`, token, { method: "PATCH" });
+    load();
+  };
+
+  const INPUT = "flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-lg font-semibold">Перекусы</h2>
+        <div className="flex gap-2">
+          <button onClick={load} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <button onClick={openCreate} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-colors">
+            <Plus className="h-4 w-4" />Добавить
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-16 rounded-xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : snacks.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Apple className="h-10 w-10 mx-auto mb-3 text-border" />
+          <p>Перекусы не добавлены</p>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {snacks.map(s => (
+            <div key={s.id} className={`flex items-center gap-4 p-4 border border-border rounded-xl transition-opacity ${s.is_active ? "" : "opacity-50"}`}>
+              {s.photo_url ? (
+                <img src={s.photo_url} alt={s.name} className="w-12 h-12 rounded-lg object-cover shrink-0 border border-border" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                  <Apple className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-medium text-sm">{s.name}</p>
+                  {!s.is_active && <span className="text-xs text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-full">скрыт</span>}
+                </div>
+                <p className="text-xs text-muted-foreground">{s.calories} ккал · Б {s.proteins}г · Ж {s.fats}г · У {s.carbs}г</p>
+                {s.tags?.length > 0 && (
+                  <div className="flex gap-1 mt-1 flex-wrap">
+                    {s.tags.map((t: string) => <span key={t} className="text-xs bg-secondary px-1.5 py-0.5 rounded-full">{t}</span>)}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => toggle(s.id)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                  {s.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+                <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button onClick={() => del(s.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors text-muted-foreground">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit / Create Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4">
+          <div className="bg-background w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl border border-border shadow-2xl flex flex-col max-h-[92dvh]">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border shrink-0">
+              <h3 className="font-bold">{editing ? "Редактировать перекус" : "Новый перекус"}</h3>
+              <button onClick={() => setShowModal(false)} className="h-8 w-8 flex items-center justify-center rounded-xl hover:bg-secondary transition-colors text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+              <div>
+                <label className="text-sm font-medium block mb-1.5">Название *</label>
+                <input value={form.name} onChange={e => setForm({...form, name:e.target.value})} className={INPUT} />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5">Описание</label>
+                <textarea value={form.description} onChange={e => setForm({...form, description:e.target.value})} rows={2}
+                  className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key:"calories", label:"Калории" }, { key:"proteins", label:"Белки (г)" },
+                  { key:"fats", label:"Жиры (г)" }, { key:"carbs", label:"Углеводы (г)" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="text-sm font-medium block mb-1.5">{f.label}</label>
+                    <input type="number" step="0.1" value={(form as any)[f.key]}
+                      onChange={e => setForm({...form, [f.key]:e.target.value})} className={INPUT} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5">URL фото (необязательно)</label>
+                <input value={form.photoUrl} onChange={e => setForm({...form, photoUrl:e.target.value})} placeholder="https://..." className={INPUT} />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1.5">Теги (через запятую)</label>
+                <input value={form.tags} onChange={e => setForm({...form, tags:e.target.value})} placeholder="белок, быстро, кето" className={INPUT} />
+              </div>
+            </div>
+            <div className="shrink-0 px-5 pb-5 pt-4 border-t border-border">
+              <button onClick={save} disabled={saving || !form.name}
+                className="w-full h-11 rounded-xl bg-foreground text-background font-semibold hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                {saving ? "Сохранение..." : editing ? "Сохранить изменения" : "Добавить перекус"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Admin Dashboard ─── */
 const TABS = [
   { id: "analytics", label: "Аналитика",    icon: BarChart3,   roles: ["admin", "owner"] },
@@ -972,6 +1146,7 @@ const TABS = [
   { id: "articles",  label: "Статьи",       icon: FileText,    roles: ["admin", "owner", "seo"] },
   { id: "pricing",   label: "Цены",         icon: DollarSign,  roles: ["admin", "owner"] },
   { id: "reviews",   label: "Отзывы",       icon: Star,        roles: ["admin", "owner"] },
+  { id: "snacks",    label: "Перекусы",     icon: Apple,       roles: ["admin", "owner"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: "Администратор", owner: "Владелец", seo: "SEO-специалист" };
@@ -1027,6 +1202,7 @@ function AdminDashboard({ token, info, onLogout }: { token: string; info: any; o
         {activeTab === "articles"  && <ArticlesTab  token={token} />}
         {activeTab === "pricing"   && <PricingTab   token={token} />}
         {activeTab === "reviews"   && <ReviewsTab   token={token} />}
+        {activeTab === "snacks"    && <SnacksTab    token={token} />}
       </div>
     </div>
   );

@@ -59,8 +59,29 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
   const { toast } = useToast();
   const [withAiChat, setWithAiChat] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
+  const [promoInput, setPromoInput] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState<number | null>(null);
+  const [promoError, setPromoError] = useState("");
 
-  const totalPrice = tier.price + (withAiChat ? AI_UPSELL_PRICE : 0);
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const r = await fetch(`/api/promos/validate?code=${encodeURIComponent(promoInput.trim())}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Неверный промокод");
+      setPromoDiscount(data.discountPercent);
+    } catch (err: any) {
+      setPromoError(err.message);
+      setPromoDiscount(null);
+    } finally { setPromoLoading(false); }
+  };
+
+  const discountedBase = promoDiscount ? Math.round(tier.price * (1 - promoDiscount / 100)) : tier.price;
+  const totalPrice = discountedBase + (withAiChat ? AI_UPSELL_PRICE : 0);
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -150,6 +171,44 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
             </div>
           </div>
 
+          {/* Promo code */}
+          {showPromo ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); if (promoDiscount) setPromoDiscount(null); }}
+                  onKeyDown={e => e.key === "Enter" && handleApplyPromo()}
+                  placeholder="ПРОМОКОД"
+                  disabled={!!promoDiscount}
+                  className="flex-1 h-10 rounded-xl border border-input bg-background px-3 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                {!promoDiscount ? (
+                  <button onClick={handleApplyPromo} disabled={promoLoading || !promoInput.trim()}
+                    className="h-10 px-4 rounded-xl bg-foreground text-background text-sm font-semibold hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                    {promoLoading ? "..." : "Применить"}
+                  </button>
+                ) : (
+                  <button onClick={() => { setPromoDiscount(null); setPromoInput(""); }}
+                    className="h-10 px-3 rounded-xl border border-border text-muted-foreground hover:bg-secondary transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {promoError && <p className="text-xs text-destructive">{promoError}</p>}
+              {promoDiscount && (
+                <p className="text-xs text-green-600 flex items-center gap-1.5">
+                  <Check className="h-3.5 w-3.5" />Скидка {promoDiscount}% применена
+                </p>
+              )}
+            </div>
+          ) : (
+            <button onClick={() => setShowPromo(true)} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Есть промокод?
+            </button>
+          )}
+
           {/* Trust */}
           <div className="flex items-center gap-3 py-3 px-4 bg-secondary/50 rounded-xl">
             <ShieldCheck className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -163,7 +222,13 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
         <div className="shrink-0 px-5 pb-5 pt-4 border-t border-border space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Итого:</span>
-            <span className="text-2xl font-bold">{fmt(totalPrice)} ₽</span>
+            <div className="text-right">
+              {promoDiscount && (
+                <p className="text-sm text-muted-foreground line-through">{fmt(tier.price + (withAiChat ? AI_UPSELL_PRICE : 0))} ₽</p>
+              )}
+              <p className="text-2xl font-bold">{fmt(totalPrice)} ₽</p>
+              {promoDiscount && <p className="text-xs text-green-600 font-medium">−{promoDiscount}% по промокоду</p>}
+            </div>
           </div>
           <Button className="w-full h-12 rounded-xl text-base font-semibold" onClick={handleConfirm} disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

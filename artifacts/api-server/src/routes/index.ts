@@ -7,6 +7,8 @@ import progressRouter from "./progress";
 import adminRouter from "./admin";
 import extendedSurveyRouter from "./extended-survey";
 import reviewsRouter from "./reviews";
+import snacksRouter from "./snacks";
+import promosRouter from "./promos";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(plansRouter);
 router.use(progressRouter);
 router.use(adminRouter);
 router.use(reviewsRouter);
+router.use(snacksRouter);
+router.use(promosRouter);
 
 export default router;

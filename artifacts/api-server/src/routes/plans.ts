@@ -42,7 +42,7 @@ router.post("/plans", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user.userId;
-    const { duration, withAiChat } = req.body;
+    const { duration, withAiChat, adjustmentNotes, calorieAdjustment } = req.body;
 
     if (!["week", "month", "three_months", "six_months"].includes(duration)) {
       res.status(400).json({ error: "Недопустимая продолжительность плана" });
@@ -77,7 +77,7 @@ router.post("/plans", requireAuth, async (req, res) => {
       .orderBy(desc(basicSurveysTable.createdAt))
       .limit(1);
 
-    const targetCalories = survey?.targetCalories ?? 2000;
+    const targetCalories = (survey?.targetCalories ?? 2000) + (Number(calorieAdjustment) || 0);
     const dietType = prefs?.dietType ?? "omnivore";
     const mealsPerDay = prefs?.mealsPerDay ?? "three";
 

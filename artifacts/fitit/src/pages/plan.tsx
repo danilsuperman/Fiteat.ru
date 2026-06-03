@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, Link, useSearch } from "wouter";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,66 @@ import { FileDown, RefreshCw, AlertCircle, Info, Calendar, ShoppingCart } from "
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/App";
 import { getGetPlanQueryKey, getGetPlanSummaryQueryKey } from "@workspace/api-client-react";
+
+/* ─── Snacks Sidebar ─── */
+function SnacksSidebar() {
+  const [snacks, setSnacks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSnacks = useCallback(() => {
+    setLoading(true);
+    fetch("/api/snacks")
+      .then(r => r.json())
+      .then(setSnacks)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchSnacks();
+    const id = setInterval(fetchSnacks, 30000);
+    return () => clearInterval(id);
+  }, [fetchSnacks]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Перекусы</h3>
+        <button onClick={fetchSnacks} title="Обновить"
+          className="p-1 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+      {loading ? (
+        <>
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 rounded-xl bg-muted animate-pulse" />)}
+        </>
+      ) : snacks.map(s => (
+        <div key={s.id} className="bg-background border border-border rounded-xl p-3.5 space-y-2 hover:shadow-sm transition-shadow">
+          {s.photo_url && (
+            <img src={s.photo_url} alt={s.name} className="w-full h-20 object-cover rounded-lg" />
+          )}
+          <div>
+            <p className="text-sm font-semibold leading-tight">{s.name}</p>
+            {s.description && (
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">{s.description}</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold">{s.calories} ккал</span>
+            <span className="text-xs text-muted-foreground">
+              Б{parseFloat(s.proteins)} Ж{parseFloat(s.fats)} У{parseFloat(s.carbs)}
+            </span>
+          </div>
+        </div>
+      ))}
+      <Link href="/snacks"
+        className="block text-xs text-center text-muted-foreground hover:text-foreground transition-colors py-1">
+        Посмотреть все перекусы →
+      </Link>
+    </div>
+  );
+}
 
 const REPLACE_REASONS = [
   "Не нравится",
@@ -235,6 +295,8 @@ export default function PlanView() {
         </div>
 
         <div className="container px-4 py-5 sm:py-8">
+          <div className="flex gap-6 items-start">
+          <div className="flex-1 min-w-0">
           <Tabs value={activeMainTab} onValueChange={(v) => setActiveMainTab(v as any)} className="space-y-5 sm:space-y-6">
             <TabsList className="w-full sm:w-auto">
               <TabsTrigger value="days" className="flex-1 sm:flex-none gap-1.5">
@@ -326,6 +388,11 @@ export default function PlanView() {
               <ShoppingListTab meals={allMeals} />
             </TabsContent>
           </Tabs>
+          </div>
+          <div className="hidden lg:block w-56 xl:w-64 shrink-0 sticky top-24">
+            <SnacksSidebar />
+          </div>
+          </div>
         </div>
       </div>
     </Layout>
