@@ -7,9 +7,9 @@ import Home from "@/pages/home";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Survey from "@/pages/survey";
-import Results from "@/pages/results";
-import PreferencesSurvey from "@/pages/preferences-survey";
-import Purchase from "@/pages/purchase";
+import Result from "@/pages/results";
+import NutritionSurvey from "@/pages/preferences-survey";
+import Payment from "@/pages/purchase";
 import Dashboard from "@/pages/dashboard";
 import PlanView from "@/pages/plan";
 import NotFound from "@/pages/not-found";
@@ -22,10 +22,10 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/survey" component={Survey} />
-      <Route path="/results" component={Results} />
-      <Route path="/survey/preferences" component={PreferencesSurvey} />
-      <Route path="/plan/purchase" component={Purchase} />
+      <Route path="/survey/metabolism" component={Survey} />
+      <Route path="/result" component={Result} />
+      <Route path="/survey/nutrition" component={NutritionSurvey} />
+      <Route path="/payment" component={Payment} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/plan/:planId" component={PlanView} />
       <Route component={NotFound} />

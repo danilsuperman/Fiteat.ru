@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useGetMe } from "@workspace/api-client-react";
-import { Dumbbell, Activity, User, LogOut } from "lucide-react";
+import { Dumbbell, LayoutDashboard, LogOut } from "lucide-react";
 
 export function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -16,19 +16,19 @@ export function Navbar() {
           <Dumbbell className="h-6 w-6 text-primary" />
           <span className="font-bold text-xl tracking-tight">ФИТИТ</span>
         </Link>
-        
-        <nav className="flex items-center gap-4">
+
+        <nav className="flex items-center gap-3">
           {isAuthenticated ? (
             <>
               <Link href="/dashboard">
-                <Button variant="ghost" className={location === "/dashboard" ? "bg-secondary text-secondary-foreground" : ""}>
-                  <Activity className="mr-2 h-4 w-4" />
+                <Button variant="ghost" className={location.startsWith("/dashboard") ? "bg-secondary" : ""}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
                   Панель
                 </Button>
               </Link>
-              <div className="flex items-center gap-2 border-l pl-4 ml-2">
-                <span className="text-sm text-muted-foreground">{user?.name}</span>
-                <Button variant="ghost" size="icon" onClick={logout}>
+              <div className="flex items-center gap-2 border-l pl-3 ml-1">
+                <span className="text-sm text-muted-foreground hidden sm:inline">{user?.name}</span>
+                <Button variant="ghost" size="icon" onClick={logout} title="Выйти">
                   <LogOut className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </div>
@@ -38,7 +38,7 @@ export function Navbar() {
               <Link href="/login">
                 <Button variant="ghost">Войти</Button>
               </Link>
-              <Link href="/survey">
+              <Link href="/survey/metabolism">
                 <Button>Начать бесплатно</Button>
               </Link>
             </>

@@ -28,6 +28,8 @@ export const preferencesSurveysTable = pgTable("preferences_surveys", {
   waterLitersPerDay: text("water_liters_per_day"),
   motivationLevel: text("motivation_level"),
   motivationHelpers: jsonb("motivation_helpers").$type<string[]>().default([]),
+  favoriteCuisines: jsonb("favorite_cuisines").$type<string[]>().default([]),
+  preferredProteinSources: jsonb("preferred_protein_sources").$type<string[]>().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

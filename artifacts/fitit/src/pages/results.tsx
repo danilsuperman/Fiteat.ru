@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Flame, ShieldAlert, Target, Scale, Brain } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-export default function Results() {
+export default function Result() {
   const { isAuthenticated } = useAuth();
   const { data: result, isLoading, error } = useGetMetabolicResult({
-    query: { enabled: isAuthenticated }
+    query: { enabled: isAuthenticated },
   });
 
   if (!isAuthenticated) {
@@ -19,9 +19,7 @@ export default function Results() {
       <Layout>
         <div className="container py-24 text-center">
           <h2 className="text-2xl font-bold mb-4">Для просмотра результатов необходимо войти</h2>
-          <Link href="/login">
-            <Button>Войти</Button>
-          </Link>
+          <Link href="/login"><Button>Войти</Button></Link>
         </div>
       </Layout>
     );
@@ -33,9 +31,7 @@ export default function Results() {
         <div className="container py-12 space-y-8">
           <Skeleton className="h-12 w-3/4 max-w-lg" />
           <div className="grid md:grid-cols-3 gap-6">
-            <Skeleton className="h-48" />
-            <Skeleton className="h-48" />
-            <Skeleton className="h-48" />
+            <Skeleton className="h-48" /><Skeleton className="h-48" /><Skeleton className="h-48" />
           </div>
           <Skeleton className="h-64" />
         </div>
@@ -46,24 +42,24 @@ export default function Results() {
   if (error || !result) {
     return (
       <Layout>
-        <div className="container py-24 text-center">
-          <h2 className="text-2xl font-bold text-destructive mb-4">Ошибка загрузки результатов</h2>
-          <p className="text-muted-foreground mb-8">Пожалуйста, попробуйте обновить страницу или пройти опрос заново.</p>
-          <Link href="/survey">
-            <Button>Пройти опрос</Button>
-          </Link>
+        <div className="container py-24 text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Результаты не найдены</h2>
+          <p className="text-muted-foreground">Пройдите опрос, чтобы получить персональный расчёт.</p>
+          <Link href="/survey/metabolism"><Button>Пройти опрос</Button></Link>
         </div>
       </Layout>
     );
   }
 
+  const total = result.proteins + result.fats + result.carbs;
+
   return (
     <Layout>
       <div className="bg-muted/20 py-12">
         <div className="container max-w-5xl space-y-8">
-          <div className="space-y-4">
+          <div className="space-y-2">
             <h1 className="text-4xl font-bold tracking-tight">Ваш метаболический профиль</h1>
-            <p className="text-lg text-muted-foreground">Мы проанализировали ваши данные. Вот что говорит наука.</p>
+            <p className="text-lg text-muted-foreground">Персональный расчёт на основе ваших данных.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -75,58 +71,53 @@ export default function Results() {
                 </CardTitle>
                 <CardDescription className="text-primary-foreground/80">Суточная норма</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
+              <CardContent className="space-y-4">
+                {[
+                  { label: "Белки", value: result.proteins, color: "bg-blue-300" },
+                  { label: "Жиры", value: result.fats, color: "bg-yellow-300" },
+                  { label: "Углеводы", value: result.carbs, color: "bg-green-300" },
+                ].map((m) => (
+                  <div key={m.label}>
                     <div className="flex justify-between mb-1 text-sm">
-                      <span>Белки</span>
-                      <span className="font-bold">{result.proteins}г</span>
+                      <span>{m.label}</span>
+                      <span className="font-bold">{m.value}г</span>
                     </div>
-                    <Progress value={result.proteins / (result.proteins + result.fats + result.carbs) * 100} className="h-2 bg-primary-foreground/20" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Жиры</span>
-                      <span className="font-bold">{result.fats}г</span>
+                    <div className="h-2 rounded-full bg-primary-foreground/20 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${m.color}`}
+                        style={{ width: `${Math.round((m.value / total) * 100)}%` }}
+                      />
                     </div>
-                    <Progress value={result.fats / (result.proteins + result.fats + result.carbs) * 100} className="h-2 bg-primary-foreground/20" />
                   </div>
-                  <div>
-                    <div className="flex justify-between mb-1 text-sm">
-                      <span>Углеводы</span>
-                      <span className="font-bold">{result.carbs}г</span>
-                    </div>
-                    <Progress value={result.carbs / (result.proteins + result.fats + result.carbs) * 100} className="h-2 bg-primary-foreground/20" />
-                  </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-accent" />
+                  <Flame className="h-5 w-5 text-orange-500" />
                   Базовый обмен (BMR)
                 </CardTitle>
                 <CardDescription>Расход в покое</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{result.bmr} <span className="text-lg font-normal text-muted-foreground">ккал</span></div>
-                <p className="text-sm text-muted-foreground mt-2">Столько энергии нужно вашему телу просто для поддержания жизни.</p>
+                <div className="text-4xl font-bold">{result.bmr} <span className="text-lg font-normal text-muted-foreground">ккал</span></div>
+                <p className="text-sm text-muted-foreground mt-3">Столько энергии нужно вашему телу просто для поддержания жизни.</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-chart-3" />
-                  С учетом активности (TDEE)
+                  <Activity className="h-5 w-5 text-primary" />
+                  С учётом активности (TDEE)
                 </CardTitle>
                 <CardDescription>Общий суточный расход</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{result.tdee} <span className="text-lg font-normal text-muted-foreground">ккал</span></div>
-                <p className="text-sm text-muted-foreground mt-2">Ваш реальный расход энергии с учетом выбранного образа жизни.</p>
+                <div className="text-4xl font-bold">{result.tdee} <span className="text-lg font-normal text-muted-foreground">ккал</span></div>
+                <p className="text-sm text-muted-foreground mt-3">Реальный расход с учётом активности и образа жизни.</p>
               </CardContent>
             </Card>
           </div>
@@ -135,23 +126,21 @@ export default function Results() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Scale className="h-5 w-5 text-chart-4" />
+                  <Scale className="h-5 w-5 text-primary" />
                   Анализ веса
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-muted-foreground">Индекс массы тела (BMI)</span>
-                  <span className="font-bold">{result.bmi} ({result.bmiCategory})</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b">
-                  <span className="text-muted-foreground">Осталось до цели</span>
-                  <span className="font-bold">{result.weightToGoal} кг</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted-foreground">Расчетное время</span>
-                  <span className="font-bold">~{result.estimatedMonths} мес.</span>
-                </div>
+              <CardContent className="space-y-3">
+                {[
+                  { label: "Индекс массы тела (ИМТ)", value: `${result.bmi} — ${result.bmiCategory}` },
+                  { label: "До цели осталось", value: `${result.weightToGoal} кг` },
+                  { label: "Расчётное время", value: `≈ ${result.estimatedMonths} мес.` },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between items-center py-2 border-b last:border-0">
+                    <span className="text-muted-foreground text-sm">{row.label}</span>
+                    <span className="font-semibold text-sm">{row.value}</span>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -163,17 +152,17 @@ export default function Results() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {result.progressBlockers.length > 0 ? (
-                  <ul className="space-y-3">
-                    {result.progressBlockers.map((blocker, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-destructive mt-0.5">•</span>
-                        <span className="text-sm">{blocker}</span>
+                {result.progressBlockers && result.progressBlockers.length > 0 ? (
+                  <ul className="space-y-2">
+                    {result.progressBlockers.map((b: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <span className="text-destructive mt-0.5 shrink-0">•</span>
+                        <span>{b}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Критических факторов, замедляющих прогресс, не выявлено. Отлично!</p>
+                  <p className="text-sm text-muted-foreground">Критических блокаторов не выявлено. Отлично!</p>
                 )}
               </CardContent>
             </Card>
@@ -184,19 +173,15 @@ export default function Results() {
             <div>
               <h3 className="text-2xl font-bold mb-2">Готовы к персональному плану?</h3>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Чтобы составить меню, которое вам действительно понравится, нам нужно узнать о ваших вкусовых предпочтениях, бюджете и времени на готовку.
+                Укажите вкусовые предпочтения, бюджет и время на готовку — и получите меню, созданное именно для вас.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link href="/survey/preferences">
-                <Button size="lg" className="px-8">
-                  Настроить план питания
-                </Button>
+              <Link href="/survey/nutrition">
+                <Button size="lg" className="px-8">Настроить рацион →</Button>
               </Link>
-              <Link href="/plan/purchase">
-                <Button size="lg" variant="outline" className="px-8">
-                  Получить план (пропустить настройки)
-                </Button>
+              <Link href="/payment">
+                <Button size="lg" variant="outline" className="px-8">Получить план (без настроек)</Button>
               </Link>
             </div>
           </div>

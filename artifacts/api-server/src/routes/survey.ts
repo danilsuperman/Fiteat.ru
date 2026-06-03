@@ -7,7 +7,6 @@ import { calculateMetabolics } from "../lib/metabolic";
 import type { Request } from "express";
 
 const router = Router();
-
 type AuthRequest = Request & { user: JwtPayload };
 
 router.post("/survey/basic", requireAuth, async (req, res) => {
@@ -133,6 +132,8 @@ router.post("/survey/preferences", requireAuth, async (req, res) => {
       waterLitersPerDay: body.waterLitersPerDay ?? null,
       motivationLevel: body.motivationLevel ?? null,
       motivationHelpers: body.motivationHelpers ?? [],
+      favoriteCuisines: Array.isArray(body.favoriteCuisines) ? body.favoriteCuisines : [],
+      preferredProteinSources: Array.isArray(body.preferredProteinSources) ? body.preferredProteinSources : [],
     });
 
     res.json({ message: "Предпочтения сохранены" });
@@ -146,7 +147,9 @@ router.get("/survey/result", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user.userId;
-    const [survey] = await db.select().from(basicSurveysTable)
+    const [survey] = await db
+      .select()
+      .from(basicSurveysTable)
       .where(eq(basicSurveysTable.userId, userId))
       .orderBy(desc(basicSurveysTable.createdAt))
       .limit(1);
