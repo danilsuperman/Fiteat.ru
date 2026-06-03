@@ -1,55 +1,80 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, ClipboardList, BarChart3, Settings, UtensilsCrossed, Calculator, Scale, ShoppingCart, FileText, FileDown, RefreshCw } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Layout } from "@/components/layout";
 
-const HOW_IT_WORKS = [
-  { step: "1", title: "Пройти опрос", desc: "Ответьте на вопросы об антропометрии, активности и здоровье", icon: ClipboardList },
-  { step: "2", title: "Получить анализ", desc: "Система рассчитает BMR, TDEE, ИМТ и оптимальное КБЖУ", icon: BarChart3 },
-  { step: "3", title: "Настроить рацион", desc: "Укажите предпочтения, аллергии, бюджет и время на готовку", icon: Settings },
-  { step: "4", title: "Получить меню", desc: "Персональный план питания с рецептами на 7–180 дней", icon: UtensilsCrossed },
+const STEPS = [
+  {
+    number: "01",
+    title: "Опрос о здоровье",
+    desc: "Антропометрия, уровень активности, сон, гормональный фон и пищевые привычки",
+  },
+  {
+    number: "02",
+    title: "Метаболический анализ",
+    desc: "Расчёт BMR, TDEE, ИМТ и оптимального соотношения белков, жиров и углеводов",
+  },
+  {
+    number: "03",
+    title: "Настройка рациона",
+    desc: "Предпочтения, аллергии, бюджет, кухни мира и время на приготовление",
+  },
+  {
+    number: "04",
+    title: "Персональный план",
+    desc: "Меню с рецептами и списком покупок на 7–180 дней в форматах PDF и DOCX",
+  },
 ];
 
-const WHATS_INCLUDED = [
-  { icon: Calculator, label: "Расчёт калорий" },
-  { icon: BarChart3, label: "БЖУ" },
-  { icon: UtensilsCrossed, label: "Меню с рецептами" },
-  { icon: ShoppingCart, label: "Список покупок" },
-  { icon: FileDown, label: "PDF" },
-  { icon: FileText, label: "DOCX" },
-  { icon: RefreshCw, label: "Корректировки" },
+const INCLUDED = [
+  "Расчёт КБЖУ",
+  "Меню с рецептами",
+  "Список покупок",
+  "PDF и DOCX",
+  "Корректировки",
+  "Анализ прогресса",
 ];
 
 const TIERS = [
-  { label: "7 дней", price: "490 ₽", desc: "Попробовать" },
+  { label: "7 дней", price: "490 ₽", desc: "Попробовать", highlight: false },
   { label: "30 дней", price: "1 490 ₽", desc: "Трансформация", highlight: true },
-  { label: "90 дней", price: "3 490 ₽", desc: "Фундамент" },
-  { label: "180 дней", price: "5 990 ₽", desc: "Образ жизни" },
+  { label: "90 дней", price: "3 490 ₽", desc: "Фундамент", highlight: false },
+  { label: "180 дней", price: "5 990 ₽", desc: "Образ жизни", highlight: false },
+];
+
+const STATS = [
+  { value: "2 347", label: "планов создано" },
+  { value: "94%", label: "достигают цели" },
+  { value: "−4.2 кг", label: "средний результат за 30 дней" },
 ];
 
 export default function Home() {
   return (
     <Layout>
       {/* Hero */}
-      <section className="py-14 sm:py-20 lg:py-32 bg-primary/5">
-        <div className="container px-4">
-          <div className="max-w-[780px] mx-auto text-center space-y-6 sm:space-y-8">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight">
-              Получите персональный рацион питания за&nbsp;<span className="text-primary">5 минут</span>
+      <section className="pt-16 pb-20 sm:pt-24 sm:pb-28 lg:pt-32 lg:pb-36">
+        <div className="container px-4 max-w-6xl">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 text-sm text-muted-foreground border border-border rounded-full px-4 py-1.5 mb-8">
+              <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+              Персональный цифровой нутрициолог
+            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1] mb-6">
+              Персональный рацион питания за{" "}
+              <span className="text-accent">5 минут</span>
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-[560px] mx-auto">
-              ИИ рассчитает ваши калории и создаст меню под ваши цели.
+            <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed mb-10 max-w-xl">
+              ИИ рассчитает ваш метаболизм и составит меню с рецептами под ваши цели, предпочтения и образ жизни.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-1 sm:pt-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link href="/survey/metabolism" className="w-full sm:w-auto">
-                <Button size="lg" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto">
+                <Button size="lg" className="h-13 px-8 text-base rounded-full w-full sm:w-auto font-medium">
                   Создать план
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <Link href="/login" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="h-13 px-8 text-base rounded-full w-full sm:w-auto font-medium border-border">
                   Войти
                 </Button>
               </Link>
@@ -58,88 +83,134 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Как работает */}
-      <section className="py-16 sm:py-24 bg-background">
-        <div className="container px-4">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Как работает</h2>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {HOW_IT_WORKS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.step} className="relative text-center space-y-3 sm:space-y-4">
-                  <div className="mx-auto h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                    <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
-                  </div>
-                  <div className="absolute top-0 right-0 h-7 w-7 sm:h-8 sm:w-8 bg-primary text-primary-foreground rounded-full text-xs sm:text-sm font-bold flex items-center justify-center shadow">
-                    {item.step}
-                  </div>
-                  <h3 className="text-sm sm:text-lg font-bold">{item.title}</h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed hidden sm:block">{item.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Что входит */}
-      <section className="py-16 sm:py-24 bg-muted/30">
-        <div className="container px-4">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Что входит в план</h2>
-          </div>
-          <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-6 max-w-5xl mx-auto">
-            {WHATS_INCLUDED.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Card key={item.label} className="text-center hover:border-primary transition-colors">
-                  <CardContent className="pt-4 pb-3 px-2 sm:pt-6 sm:pb-4 sm:px-3 space-y-2 sm:space-y-3">
-                    <div className="mx-auto h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                    <p className="text-xs font-medium leading-tight">{item.label}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Тарифы */}
-      <section className="py-16 sm:py-24 bg-background">
-        <div className="container px-4">
-          <div className="text-center mb-10 sm:mb-14 space-y-3">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Тарифы</h2>
-            <p className="text-muted-foreground">Выберите подходящую длительность плана</p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto">
-            {TIERS.map((tier) => (
-              <Card key={tier.label} className={`relative flex flex-col text-center ${tier.highlight ? "border-primary shadow-lg ring-1 ring-primary" : ""}`}>
-                {tier.highlight && (
-                  <div className="absolute -top-3 left-0 right-0 flex justify-center">
-                    <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Популярный</span>
-                  </div>
-                )}
-                <CardContent className="pt-6 sm:pt-8 pb-5 sm:pb-6 px-3 sm:px-4 space-y-3 sm:space-y-4 flex-1 flex flex-col">
-                  <div>
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">{tier.desc}</p>
-                    <p className="text-xl sm:text-2xl font-bold mt-1">{tier.label}</p>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-primary">{tier.price}</p>
-                  <div className="mt-auto pt-2 sm:pt-4">
-                    <Link href="/survey/metabolism">
-                      <Button className="w-full text-sm" variant={tier.highlight ? "default" : "outline"}>
-                        Начать
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+      {/* Stats */}
+      <section className="py-10 border-y border-border/60">
+        <div className="container px-4 max-w-6xl">
+          <div className="grid grid-cols-3 gap-4 sm:gap-8">
+            {STATS.map((s) => (
+              <div key={s.label} className="text-center sm:text-left">
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">{s.value}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-tight">{s.label}</p>
+              </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-20 sm:py-28">
+        <div className="container px-4 max-w-6xl">
+          <div className="mb-12 sm:mb-16">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">Как работает</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              От опроса до готового меню
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
+            {STEPS.map((step) => (
+              <div key={step.number} className="bg-background p-6 sm:p-8 space-y-4">
+                <span className="text-3xl font-bold text-foreground/10 tracking-tight">{step.number}</span>
+                <h3 className="text-base font-semibold text-foreground">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What's included */}
+      <section className="py-20 sm:py-28 bg-secondary/40">
+        <div className="container px-4 max-w-6xl">
+          <div className="mb-12">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">Что входит</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Всё необходимое в одном плане
+            </h2>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {INCLUDED.map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-border bg-background text-sm font-medium text-foreground"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-20 sm:py-28">
+        <div className="container px-4 max-w-6xl">
+          <div className="mb-12 sm:mb-16">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">Тарифы</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Выберите длительность
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {TIERS.map((tier) => (
+              <div
+                key={tier.label}
+                className={`relative rounded-2xl p-6 sm:p-8 flex flex-col gap-4 border transition-shadow ${
+                  tier.highlight
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-background"
+                }`}
+              >
+                {tier.highlight && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold bg-accent text-accent-foreground px-3 py-1 rounded-full whitespace-nowrap">
+                    Популярный
+                  </span>
+                )}
+                <div>
+                  <p className={`text-xs font-medium mb-1 ${tier.highlight ? "text-background/60" : "text-muted-foreground"}`}>
+                    {tier.desc}
+                  </p>
+                  <p className="text-2xl sm:text-3xl font-bold tracking-tight">{tier.label}</p>
+                </div>
+                <p className={`text-xl sm:text-2xl font-bold ${tier.highlight ? "text-background" : "text-foreground"}`}>
+                  {tier.price}
+                </p>
+                <Link href="/survey/metabolism" className="mt-auto">
+                  <Button
+                    className={`w-full rounded-xl text-sm font-medium ${
+                      tier.highlight
+                        ? "bg-background text-foreground hover:bg-background/90"
+                        : ""
+                    }`}
+                    variant={tier.highlight ? "ghost" : "outline"}
+                  >
+                    Начать
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 sm:py-28 bg-foreground">
+        <div className="container px-4 max-w-6xl text-center">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-background tracking-tight mb-4">
+            Начните сегодня — бесплатно
+          </h2>
+          <p className="text-background/60 text-base sm:text-lg mb-8 max-w-md mx-auto">
+            Опрос занимает 5 минут. Первый анализ доступен сразу после прохождения.
+          </p>
+          <Link href="/survey/metabolism">
+            <Button
+              size="lg"
+              className="h-13 px-10 text-base rounded-full bg-background text-foreground hover:bg-background/90 font-medium"
+            >
+              Создать план бесплатно
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </section>
     </Layout>
