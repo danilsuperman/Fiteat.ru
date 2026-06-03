@@ -554,9 +554,9 @@ export default function ExtendedSurvey() {
         body: JSON.stringify(answers),
       });
       localStorage.removeItem("fitit_extended_survey");
-      setLocation("/payment");
+      setLocation("/result");
     } catch {
-      setLocation("/payment");
+      setLocation("/result");
     } finally {
       setSaving(false);
     }

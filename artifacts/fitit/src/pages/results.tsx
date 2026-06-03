@@ -180,7 +180,7 @@ export default function Result() {
 
   const [selectedGoal,   setSelectedGoal]   = useState<string | null>(null);
   const [selectedMonths, setSelectedMonths] = useState(3);
-  const [openBlock, setOpenBlock] = useState<number | null>(null);
+  const [openBlock, setOpenBlock] = useState<number | null>(0);
 
   const goal = selectedGoal ?? result?.goal ?? "lose_weight";
   const needsSlider = goal !== "maintain_recompose";

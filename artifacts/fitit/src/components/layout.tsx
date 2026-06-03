@@ -45,7 +45,7 @@ export function Navbar() {
                 </Button>
               </Link>
               <div className="flex items-center gap-2 border-l border-border pl-3 ml-2">
-                <Link href="/profile" className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                <Link href="/profile" className="inline-flex items-center h-9 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
                   {user?.name}
                 </Link>
                 <Button variant="ghost" size="icon" onClick={logout} title="Выйти" className="h-9 w-9 text-muted-foreground hover:text-foreground">

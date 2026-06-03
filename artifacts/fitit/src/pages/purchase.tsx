@@ -58,7 +58,21 @@ const DURATION_MAP: Record<string, string> = {
   "30": PlanInputDuration.month,
   "90": PlanInputDuration.three_months,
   "180": PlanInputDuration.six_months,
+  "365": PlanInputDuration.six_months,
 };
+
+function periodLabel(days: number): string {
+  if (days === 7) return "/ неделя";
+  if (days < 30) return `/ ${days} дн.`;
+  if (days < 365) {
+    const m = Math.round(days / 30);
+    if (m === 1) return "/ месяц";
+    if (m < 5) return `/ ${m} месяца`;
+    return `/ ${m} месяцев`;
+  }
+  const y = Math.round(days / 365);
+  return y === 1 ? "/ год" : `/ ${y} года`;
+}
 
 function useTiers() {
   const [tiers, setTiers] = useState(STATIC_TIERS);
@@ -67,28 +81,26 @@ function useTiers() {
       .then(r => r.json())
       .then((packages: any[]) => {
         if (!Array.isArray(packages) || packages.length === 0) return;
-        const mapped = packages
-          .map(pkg => {
-            const dur = DURATION_MAP[String(pkg.duration_days)];
-            if (!dur) return null;
-            const staticTier = STATIC_TIERS.find(t => t.duration === dur);
-            const price = Math.round(pkg.price_kopecks / 100);
-            const aiUpsellPrice = pkg.ai_upsell_price_kopecks
-              ? Math.round(pkg.ai_upsell_price_kopecks / 100)
-              : DEFAULT_AI_UPSELL_PRICE;
-            return {
-              duration: dur,
-              name: staticTier?.name || pkg.name,
-              price,
-              priceLabel: `${new Intl.NumberFormat("ru-RU").format(price)} ₽`,
-              period: staticTier?.period || "",
-              features: pkg.features?.length > 0 ? pkg.features : staticTier?.features || [],
-              highlight: staticTier?.highlight || false,
-              badge: staticTier?.badge,
-              aiUpsellPrice,
-            };
-          })
-          .filter(Boolean) as typeof STATIC_TIERS;
+        const mapped = packages.map(pkg => {
+          const dur = DURATION_MAP[String(pkg.duration_days)] || PlanInputDuration.six_months;
+          const staticTier = STATIC_TIERS.find(t => t.duration === dur);
+          const price = Math.round(pkg.price_kopecks / 100);
+          const aiUpsellPrice = pkg.ai_upsell_price_kopecks
+            ? Math.round(pkg.ai_upsell_price_kopecks / 100)
+            : DEFAULT_AI_UPSELL_PRICE;
+          const isPopular = pkg.is_popular === true;
+          return {
+            duration: dur,
+            name: pkg.name,
+            price,
+            priceLabel: `${new Intl.NumberFormat("ru-RU").format(price)} ₽`,
+            period: periodLabel(pkg.duration_days),
+            features: pkg.features?.length > 0 ? pkg.features : staticTier?.features || [],
+            highlight: isPopular,
+            badge: isPopular ? "Популярный выбор" : undefined,
+            aiUpsellPrice,
+          };
+        });
         if (mapped.length > 0) setTiers(mapped);
       })
       .catch(() => {});
@@ -312,9 +324,9 @@ export default function Payment() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {tiers.map((tier) => (
+            {tiers.map((tier, idx) => (
               <div
-                key={tier.duration}
+                key={`${tier.duration}-${idx}`}
                 className={`relative flex flex-col rounded-2xl p-6 border transition-all hover:shadow-md cursor-pointer group ${
                   tier.highlight ? "border-foreground bg-foreground text-background shadow-lg" : "border-border bg-background hover:border-foreground/40"
                 }`}

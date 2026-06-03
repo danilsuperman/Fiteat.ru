@@ -433,7 +433,7 @@ function PricingTab({ token }: { token: string }) {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const empty = { name: "", description: "", priceRubles: "", aiUpsellPriceRubles: "299", durationDays: "30", featuresText: "", isActive: true, sortOrder: "0" };
+  const empty = { name: "", description: "", priceRubles: "", aiUpsellPriceRubles: "299", durationDays: "30", featuresText: "", isActive: true, isPopular: false, sortOrder: "0" };
   const [form, setForm] = useState(empty);
 
   const load = useCallback(() => {
@@ -450,7 +450,7 @@ function PricingTab({ token }: { token: string }) {
       aiUpsellPriceRubles: String(p.ai_upsell_price_kopecks ? Math.round(p.ai_upsell_price_kopecks / 100) : 299),
       durationDays: String(p.duration_days),
       featuresText: (p.features || []).join("\n"),
-      isActive: p.is_active, sortOrder: String(p.sort_order),
+      isActive: p.is_active, isPopular: p.is_popular || false, sortOrder: String(p.sort_order),
     });
     setShowForm(true); setError("");
   };
@@ -464,7 +464,7 @@ function PricingTab({ token }: { token: string }) {
         aiUpsellPriceRubles: Number(form.aiUpsellPriceRubles) || 299,
         durationDays: Number(form.durationDays),
         features: form.featuresText.split("\n").map(l => l.trim()).filter(Boolean),
-        isActive: form.isActive, sortOrder: Number(form.sortOrder),
+        isActive: form.isActive, isPopular: form.isPopular, sortOrder: Number(form.sortOrder),
       };
       if (editing) await apiFetch(`/admin/pricing/${editing.id}`, token, { method: "PUT", body: JSON.stringify(payload) });
       else await apiFetch("/admin/pricing", token, { method: "POST", body: JSON.stringify(payload) });
@@ -541,10 +541,16 @@ function PricingTab({ token }: { token: string }) {
               placeholder={FEATURES_PLACEHOLDER}
               className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.isActive} onChange={e => f("isActive", e.target.checked)} className="w-4 h-4 rounded" />
-            <span className="text-sm">Активен (показывать на сайте)</span>
-          </label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isActive} onChange={e => f("isActive", e.target.checked)} className="w-4 h-4 rounded" />
+              <span className="text-sm">Активен (показывать на сайте)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isPopular} onChange={e => f("isPopular", e.target.checked)} className="w-4 h-4 rounded" />
+              <span className="text-sm">Популярный выбор (выделить на странице тарифов)</span>
+            </label>
+          </div>
           <div className="flex gap-2">
             <Button type="submit" size="sm" className="rounded-xl" disabled={loading}>{loading ? "Сохранение..." : editing ? "Сохранить" : "Создать"}</Button>
             <Button type="button" size="sm" variant="outline" className="rounded-xl" onClick={() => setShowForm(false)}>Отмена</Button>
@@ -557,8 +563,9 @@ function PricingTab({ token }: { token: string }) {
           <div key={p.id} className={`border rounded-2xl p-5 space-y-3 ${p.is_active ? "border-border" : "border-dashed border-border opacity-60"}`}>
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-semibold">{p.name}</p>
+                  {p.is_popular && <span className="text-xs font-semibold bg-foreground text-background rounded-full px-2 py-0.5">★ Популярный</span>}
                   {!p.is_active && <span className="text-xs text-muted-foreground border border-border rounded-full px-2 py-0.5">Скрыт</span>}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{p.description}</p>

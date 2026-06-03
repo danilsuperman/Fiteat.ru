@@ -24,7 +24,7 @@ router.post("/support", async (req, res) => {
 router.get("/packages", async (_req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, description, price_kopecks, ai_upsell_price_kopecks, duration_days, features, is_active, sort_order FROM pricing_packages WHERE is_active = true ORDER BY sort_order, id"
+      "SELECT id, name, description, price_kopecks, ai_upsell_price_kopecks, duration_days, features, is_active, is_popular, sort_order FROM pricing_packages WHERE is_active = true ORDER BY sort_order, id"
     );
     res.json(result.rows);
   } catch (err) {

@@ -103,7 +103,7 @@ export default function ReviewsPage() {
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
-          <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className="inline-flex items-center justify-center h-9 w-9 rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground shrink-0">
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <h1 className="font-bold text-lg">Отзывы</h1>

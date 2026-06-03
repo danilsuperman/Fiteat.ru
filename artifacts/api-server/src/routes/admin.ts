@@ -303,11 +303,11 @@ router.get("/admin/pricing", requireAdmin, async (req, res) => {
 
 router.post("/admin/pricing", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try {
-    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder } = req.body;
+    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder, isPopular } = req.body;
     if (!name || priceRubles === undefined) { res.status(400).json({ error: "Укажите название и цену" }); return; }
     const result = await pool.query(
-      "INSERT INTO pricing_packages (name,description,price_kopecks,ai_upsell_price_kopecks,features,duration_days,is_active,sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
-      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0]
+      "INSERT INTO pricing_packages (name,description,price_kopecks,ai_upsell_price_kopecks,features,duration_days,is_active,sort_order,is_popular) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
+      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0, isPopular === true]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
@@ -315,10 +315,10 @@ router.post("/admin/pricing", requireAdmin, requireRole("admin", "owner"), async
 
 router.put("/admin/pricing/:id", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try {
-    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder } = req.body;
+    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder, isPopular } = req.body;
     const result = await pool.query(
-      "UPDATE pricing_packages SET name=$1,description=$2,price_kopecks=$3,ai_upsell_price_kopecks=$4,features=$5,duration_days=$6,is_active=$7,sort_order=$8 WHERE id=$9 RETURNING *",
-      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0, req.params.id]
+      "UPDATE pricing_packages SET name=$1,description=$2,price_kopecks=$3,ai_upsell_price_kopecks=$4,features=$5,duration_days=$6,is_active=$7,sort_order=$8,is_popular=$9 WHERE id=$10 RETURNING *",
+      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0, isPopular === true, req.params.id]
     );
     if (!result.rows[0]) { res.status(404).json({ error: "Не найдено" }); return; }
     res.json(result.rows[0]);
