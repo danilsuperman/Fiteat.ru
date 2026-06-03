@@ -185,4 +185,42 @@ router.get("/survey/result", requireAuth, async (req, res) => {
   }
 });
 
+router.get("/survey/profile", requireAuth, async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user.userId;
+    const [survey] = await db
+      .select()
+      .from(basicSurveysTable)
+      .where(eq(basicSurveysTable.userId, userId))
+      .orderBy(desc(basicSurveysTable.createdAt))
+      .limit(1);
+
+    if (!survey) {
+      res.status(404).json({ error: "Профиль не найден" });
+      return;
+    }
+
+    res.json({
+      gender: survey.gender,
+      age: survey.age,
+      height: survey.height,
+      weight: survey.weight,
+      targetWeight: survey.targetWeight,
+      goal: survey.goal,
+      hormonalDisorder: survey.hormonalDisorder,
+      lifestyle: survey.lifestyle,
+      dailySteps: survey.dailySteps,
+      cardioMinutesPerWeek: survey.cardioMinutesPerWeek,
+      strengthMinutesPerWeek: survey.strengthMinutesPerWeek,
+      bmi: survey.bmi,
+      bmiCategory: survey.bmiCategory,
+      waistCm: survey.waistCm,
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Ошибка получения профиля" });
+  }
+});
+
 export default router;
