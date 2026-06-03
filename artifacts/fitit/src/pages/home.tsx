@@ -6,18 +6,36 @@ import { Layout } from "@/components/layout";
 
 /* ─── Home Reviews Section ─── */
 function HomeReviewsSection() {
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [allReviews, setAllReviews] = useState<any[]>([]);
+  const [visible, setVisible] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/reviews?limit=3")
+    fetch("/api/reviews?limit=20")
       .then(r => r.json())
-      .then(d => setReviews(d.reviews || []))
+      .then(d => {
+        const list = d.reviews || [];
+        setAllReviews(list);
+        setVisible(pickRandom(list, 4));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  if (!loading && reviews.length === 0) return null;
+  function pickRandom(arr: any[], n: number) {
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, n);
+  }
+
+  useEffect(() => {
+    if (allReviews.length <= 4) return;
+    const interval = setInterval(() => {
+      setVisible(pickRandom(allReviews, 4));
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [allReviews]);
+
+  if (!loading && allReviews.length === 0) return null;
 
   return (
     <section className="py-20 sm:py-28 bg-secondary/30">
@@ -32,12 +50,12 @@ function HomeReviewsSection() {
           </Link>
         </div>
         {loading ? (
-          <div className="grid sm:grid-cols-3 gap-5">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-48 rounded-2xl bg-secondary animate-pulse" />)}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-48 rounded-2xl bg-secondary animate-pulse" />)}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-3 gap-5">
-            {reviews.map(r => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {visible.map(r => (
               <div key={r.id} className="bg-background rounded-2xl border border-border p-5 flex flex-col gap-3">
                 <div className="flex gap-0.5">
                   {[1,2,3,4,5].map(n => (

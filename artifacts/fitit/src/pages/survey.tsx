@@ -76,16 +76,52 @@ const STEPS_CONFIG = [
   { id: "metabolic",part: "Часть 4",label: "Метаболические особенности" },
 ];
 
+const DRAFT_KEY = "fitit_survey_draft";
+
+function loadDraft(): Answers {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (raw) return JSON.parse(raw);
+    // Try to sync common fields from extended survey draft
+    const ext = localStorage.getItem("fitit_extended_survey");
+    if (ext) {
+      const e = JSON.parse(ext);
+      const synced: Answers = {};
+      if (e.gender) synced.gender = e.gender;
+      if (e.age)    synced.age    = Number(e.age);
+      if (e.height) synced.height = Number(e.height);
+      if (e.weight) synced.weight = Number(e.weight);
+      if (e.goal)   synced.goal   = e.goal;
+      return synced;
+    }
+  } catch {}
+  return {};
+}
+
 /* ─── Main Component ─── */
 export default function Survey() {
   const [step, setStep] = useState(0);
-  const [a, setA] = useState<Answers>({});
+  const [a, setA] = useState<Answers>(loadDraft);
   const [, setLocation] = useLocation();
   const { isAuthenticated } = useAuth();
   const mutation = useSubmitBasicSurvey();
   const { toast } = useToast();
 
-  const set = (k: keyof Answers, v: any) => setA(prev => ({ ...prev, [k]: v }));
+  // Auto-save draft on every answer change
+  const set = (k: keyof Answers, v: any) => setA(prev => {
+    const next = { ...prev, [k]: v };
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(next)); } catch {}
+    // Sync common fields into extended survey draft too
+    try {
+      const ext = JSON.parse(localStorage.getItem("fitit_extended_survey") || "{}");
+      const syncKeys: Record<string, string> = { gender: "gender", age: "age", height: "height", weight: "weight", goal: "goal" };
+      if (k in syncKeys) {
+        ext[syncKeys[k as string]] = v;
+        localStorage.setItem("fitit_extended_survey", JSON.stringify(ext));
+      }
+    } catch {}
+    return next;
+  });
 
   const next = () => { setStep(s => s + 1); window.scrollTo({ top: 0 }); };
   const back = () => { setStep(s => Math.max(0, s - 1)); window.scrollTo({ top: 0 }); };
@@ -112,7 +148,10 @@ export default function Survey() {
 
     if (isAuthenticated) {
       mutation.mutate({ data: payload as any }, {
-        onSuccess: () => setLocation("/result"),
+        onSuccess: () => {
+          try { localStorage.removeItem(DRAFT_KEY); } catch {}
+          setLocation("/result");
+        },
         onError: (err) => toast({ title: "Ошибка", description: err.message || "Не удалось сохранить", variant: "destructive" }),
       });
     } else {

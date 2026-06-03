@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
@@ -56,6 +57,9 @@ const POSTS = [
 const CATEGORIES = ["Все", "Наука", "Питание", "Гормоны", "Рацион", "Лайфхаки", "Образ жизни"];
 
 export default function Blog() {
+  const [activeCategory, setActiveCategory] = useState("Все");
+  const filtered = activeCategory === "Все" ? POSTS : POSTS.filter(p => p.category === activeCategory);
+
   return (
     <Layout>
       <div className="py-12 sm:py-16">
@@ -73,11 +77,12 @@ export default function Blog() {
 
           {/* Categories */}
           <div className="flex flex-wrap gap-2 mb-10">
-            {CATEGORIES.map((cat, i) => (
+            {CATEGORIES.map((cat) => (
               <button
                 key={cat}
+                onClick={() => setActiveCategory(cat)}
                 className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                  i === 0
+                  activeCategory === cat
                     ? "bg-foreground text-background border-foreground"
                     : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
                 }`}
@@ -89,27 +94,29 @@ export default function Blog() {
 
           {/* Posts grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {POSTS.map((post) => (
-              <article key={post.slug} className="group border border-border rounded-2xl p-6 hover:border-foreground/20 transition-colors flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider bg-secondary px-2.5 py-1 rounded-full">
-                    {post.category}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{post.readTime}</span>
-                </div>
-                <h2 className="text-base font-semibold text-foreground mb-3 leading-snug group-hover:text-accent transition-colors flex-1">
-                  {post.title}
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-5 line-clamp-3">
-                  {post.excerpt}
-                </p>
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                  <span className="text-xs text-muted-foreground">{post.date}</span>
-                  <button className="text-xs font-medium text-foreground flex items-center gap-1 hover:text-accent transition-colors">
-                    Читать <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-              </article>
+            {filtered.map((post) => (
+              <Link key={post.slug} href={`/blog/${post.slug}`}>
+                <article className="group border border-border rounded-2xl p-6 hover:border-foreground/20 transition-colors flex flex-col h-full cursor-pointer">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider bg-secondary px-2.5 py-1 rounded-full">
+                      {post.category}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{post.readTime}</span>
+                  </div>
+                  <h2 className="text-base font-semibold text-foreground mb-3 leading-snug group-hover:text-accent transition-colors flex-1">
+                    {post.title}
+                  </h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-5 line-clamp-3">
+                    {post.excerpt}
+                  </p>
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                    <span className="text-xs text-muted-foreground">{post.date}</span>
+                    <span className="text-xs font-medium text-foreground flex items-center gap-1 group-hover:text-accent transition-colors">
+                      Читать <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </div>
+                </article>
+              </Link>
             ))}
           </div>
 

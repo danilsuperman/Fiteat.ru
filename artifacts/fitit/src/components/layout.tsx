@@ -171,8 +171,7 @@ function Footer() {
                 { href: "/calculator", label: "Калькулятор КБЖУ" },
                 { href: "/reviews", label: "Отзывы" },
                 { href: "/survey/metabolism", label: "Создать план" },
-                { href: "/login", label: "Войти" },
-                { href: "/register", label: "Регистрация" },
+                { href: "/snacks", label: "Перекусы" },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -189,7 +188,10 @@ function Footer() {
             <ul className="space-y-2.5">
               {[
                 { href: "/blog", label: "Блог" },
-                { href: "/admin", label: "Администрация" },
+                { href: "/about", label: "О платформе" },
+                { href: "/how-it-works", label: "Как это работает" },
+                { href: "/faq", label: "Вопросы и ответы" },
+                { href: "/support", label: "Поддержка" },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">

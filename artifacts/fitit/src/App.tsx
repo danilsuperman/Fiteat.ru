@@ -14,10 +14,15 @@ import Dashboard from "@/pages/dashboard";
 import PlanView from "@/pages/plan";
 import Calculator from "@/pages/calculator";
 import Blog from "@/pages/blog";
+import BlogPost from "@/pages/blog-post";
 import Admin from "@/pages/admin";
 import ExtendedSurvey from "@/pages/extended-survey";
 import ReviewsPage from "@/pages/reviews";
 import SnacksPage from "@/pages/snacks";
+import FAQ from "@/pages/faq";
+import HowItWorks from "@/pages/how-it-works";
+import Support from "@/pages/support";
+import About from "@/pages/about";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -35,11 +40,16 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/plan/:planId" component={PlanView} />
       <Route path="/calculator" component={Calculator} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/blog" component={Blog} />
       <Route path="/admin" component={Admin} />
       <Route path="/survey/extended" component={ExtendedSurvey} />
       <Route path="/reviews" component={ReviewsPage} />
       <Route path="/snacks" component={SnacksPage} />
+      <Route path="/faq" component={FAQ} />
+      <Route path="/how-it-works" component={HowItWorks} />
+      <Route path="/support" component={Support} />
+      <Route path="/about" component={About} />
       <Route component={NotFound} />
     </Switch>
   );
