@@ -161,6 +161,9 @@ router.get("/survey/result", requireAuth, async (req, res) => {
 
     res.json({
       id: survey.id,
+      goal: survey.goal,
+      weight: survey.weight,
+      targetWeight: survey.targetWeight,
       bmr: survey.bmr,
       tdee: survey.tdee,
       targetCalories: survey.targetCalories,
