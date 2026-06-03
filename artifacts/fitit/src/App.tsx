@@ -12,6 +12,9 @@ import NutritionSurvey from "@/pages/preferences-survey";
 import Payment from "@/pages/purchase";
 import Dashboard from "@/pages/dashboard";
 import PlanView from "@/pages/plan";
+import Calculator from "@/pages/calculator";
+import Blog from "@/pages/blog";
+import Admin from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -28,6 +31,9 @@ function Router() {
       <Route path="/payment" component={Payment} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/plan/:planId" component={PlanView} />
+      <Route path="/calculator" component={Calculator} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
