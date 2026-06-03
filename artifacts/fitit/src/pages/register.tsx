@@ -47,11 +47,10 @@ export default function Register() {
             submitSurveyMutation.mutate({ data: surveyData }, {
               onSuccess: () => {
                 localStorage.removeItem("fitit_pending_survey_1");
-                setLocation("/results");
+                setLocation("/result");
               },
               onError: () => {
-                // Ignore error, just redirect to dashboard or results
-                setLocation("/results");
+                setLocation("/result");
               }
             });
           } catch (e) {
