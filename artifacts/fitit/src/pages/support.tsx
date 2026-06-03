@@ -16,13 +16,26 @@ export default function Support() {
   const [form, setForm] = useState({ name: "", email: "", topic: "", message: "" });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSent(true);
-    setLoading(false);
+    setError("");
+    try {
+      const r = await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Не удалось отправить");
+      setSent(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,7 +61,7 @@ export default function Support() {
                   <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-6">
                     Мы получили ваш запрос и ответим на указанный e-mail в течение 24 часов.
                   </p>
-                  <button onClick={() => setSent(false)}
+                  <button onClick={() => { setSent(false); setForm({ name: "", email: "", topic: "", message: "" }); }}
                     className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors">
                     Отправить ещё одно сообщение
                   </button>
@@ -56,6 +69,11 @@ export default function Support() {
               ) : (
                 <div className="bg-background border border-border rounded-2xl p-6 sm:p-8">
                   <h2 className="text-lg font-bold mb-5">Написать в поддержку</h2>
+                  {error && (
+                    <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-xl px-4 py-3">
+                      {error}
+                    </div>
+                  )}
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">

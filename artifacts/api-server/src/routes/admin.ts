@@ -303,11 +303,11 @@ router.get("/admin/pricing", requireAdmin, async (req, res) => {
 
 router.post("/admin/pricing", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try {
-    const { name, description, priceRubles, features, durationDays, isActive, sortOrder } = req.body;
+    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder } = req.body;
     if (!name || priceRubles === undefined) { res.status(400).json({ error: "Укажите название и цену" }); return; }
     const result = await pool.query(
-      "INSERT INTO pricing_packages (name,description,price_kopecks,features,duration_days,is_active,sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
-      [name, description || "", Math.round(Number(priceRubles) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0]
+      "INSERT INTO pricing_packages (name,description,price_kopecks,ai_upsell_price_kopecks,features,duration_days,is_active,sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
@@ -315,10 +315,10 @@ router.post("/admin/pricing", requireAdmin, requireRole("admin", "owner"), async
 
 router.put("/admin/pricing/:id", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try {
-    const { name, description, priceRubles, features, durationDays, isActive, sortOrder } = req.body;
+    const { name, description, priceRubles, aiUpsellPriceRubles, features, durationDays, isActive, sortOrder } = req.body;
     const result = await pool.query(
-      "UPDATE pricing_packages SET name=$1,description=$2,price_kopecks=$3,features=$4,duration_days=$5,is_active=$6,sort_order=$7 WHERE id=$8 RETURNING *",
-      [name, description || "", Math.round(Number(priceRubles) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0, req.params.id]
+      "UPDATE pricing_packages SET name=$1,description=$2,price_kopecks=$3,ai_upsell_price_kopecks=$4,features=$5,duration_days=$6,is_active=$7,sort_order=$8 WHERE id=$9 RETURNING *",
+      [name, description || "", Math.round(Number(priceRubles) * 100), Math.round(Number(aiUpsellPriceRubles || 299) * 100), features || [], Number(durationDays) || 30, isActive !== false, Number(sortOrder) || 0, req.params.id]
     );
     if (!result.rows[0]) { res.status(404).json({ error: "Не найдено" }); return; }
     res.json(result.rows[0]);
@@ -328,6 +328,38 @@ router.put("/admin/pricing/:id", requireAdmin, requireRole("admin", "owner"), as
 router.delete("/admin/pricing/:id", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try { await pool.query("DELETE FROM pricing_packages WHERE id=$1", [req.params.id]); res.json({ success: true }); }
   catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
+});
+
+/* ─── Support Tickets ─── */
+router.get("/admin/support-tickets", requireAdmin, async (req, res) => {
+  try {
+    const status = req.query.status;
+    const where = status ? "WHERE status=$1" : "";
+    const params = status ? [status] : [];
+    const result = await pool.query(
+      `SELECT * FROM support_tickets ${where} ORDER BY created_at DESC LIMIT 100`,
+      params
+    );
+    res.json(result.rows);
+  } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
+});
+
+router.patch("/admin/support-tickets/:id", requireAdmin, async (req, res) => {
+  try {
+    const { status, adminReply } = req.body;
+    const sets: string[] = ["updated_at=NOW()"];
+    const vals: any[] = [];
+    let i = 1;
+    if (status) { sets.push(`status=$${i++}`); vals.push(status); }
+    if (adminReply !== undefined) { sets.push(`admin_reply=$${i++}`); vals.push(adminReply); }
+    vals.push(req.params.id);
+    const result = await pool.query(
+      `UPDATE support_tickets SET ${sets.join(",")} WHERE id=$${i} RETURNING *`,
+      vals
+    );
+    if (!result.rows[0]) { res.status(404).json({ error: "Не найдено" }); return; }
+    res.json(result.rows[0]);
+  } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
 });
 
 export default router;

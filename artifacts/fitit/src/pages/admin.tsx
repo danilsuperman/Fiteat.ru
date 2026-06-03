@@ -5,7 +5,7 @@ import {
   BarChart3, Tag, FileText, LogOut, Plus, Trash2,
   Eye, EyeOff, X, Users, TrendingUp, Check,
   DollarSign, ChevronDown, ChevronUp, Search,
-  Calendar, Settings, RefreshCw, Edit2, Star, Apple
+  Calendar, Settings, RefreshCw, Edit2, Star, Apple, MessageCircle
 } from "lucide-react";
 
 const API = (p: string) => `/api${p}`;
@@ -433,7 +433,7 @@ function PricingTab({ token }: { token: string }) {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const empty = { name: "", description: "", priceRubles: "", durationDays: "30", featuresText: "", isActive: true, sortOrder: "0" };
+  const empty = { name: "", description: "", priceRubles: "", aiUpsellPriceRubles: "299", durationDays: "30", featuresText: "", isActive: true, sortOrder: "0" };
   const [form, setForm] = useState(empty);
 
   const load = useCallback(() => {
@@ -447,6 +447,7 @@ function PricingTab({ token }: { token: string }) {
     setForm({
       name: p.name, description: p.description || "",
       priceRubles: String(Math.round(p.price_kopecks / 100)),
+      aiUpsellPriceRubles: String(p.ai_upsell_price_kopecks ? Math.round(p.ai_upsell_price_kopecks / 100) : 299),
       durationDays: String(p.duration_days),
       featuresText: (p.features || []).join("\n"),
       isActive: p.is_active, sortOrder: String(p.sort_order),
@@ -460,6 +461,7 @@ function PricingTab({ token }: { token: string }) {
       const payload = {
         name: form.name, description: form.description,
         priceRubles: Number(form.priceRubles),
+        aiUpsellPriceRubles: Number(form.aiUpsellPriceRubles) || 299,
         durationDays: Number(form.durationDays),
         features: form.featuresText.split("\n").map(l => l.trim()).filter(Boolean),
         isActive: form.isActive, sortOrder: Number(form.sortOrder),
@@ -510,6 +512,11 @@ function PricingTab({ token }: { token: string }) {
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Цена (₽) *</label>
               <input type="number" min="0" value={form.priceRubles} onChange={e => f("priceRubles", e.target.value)} required placeholder="990"
+                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">AI-нутрициолог (₽) *</label>
+              <input type="number" min="0" value={form.aiUpsellPriceRubles} onChange={e => f("aiUpsellPriceRubles", e.target.value)} required placeholder="299"
                 className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             </div>
             <div className="space-y-1">
@@ -565,9 +572,14 @@ function PricingTab({ token }: { token: string }) {
                 </button>
               </div>
             </div>
-            <div className="flex items-end gap-3">
+            <div className="flex items-end gap-3 flex-wrap">
               <p className="text-2xl font-bold">{fmtRub(Math.round(p.price_kopecks / 100))}</p>
               <p className="text-sm text-muted-foreground pb-0.5">{durationLabel(p.duration_days)}</p>
+              {p.ai_upsell_price_kopecks && (
+                <span className="text-xs text-muted-foreground border border-border rounded-full px-2 py-0.5 mb-0.5">
+                  AI +{fmtRub(Math.round(p.ai_upsell_price_kopecks / 100))}
+                </span>
+              )}
             </div>
             {p.features?.length > 0 && (
               <ul className="space-y-1">
@@ -1138,15 +1150,158 @@ function SnacksTab({ token }: { token: string }) {
   );
 }
 
+/* ─── Support Tickets Tab ─── */
+const TICKET_STATUSES = ["new", "in_progress", "resolved", "closed"];
+const TICKET_STATUS_LABELS: Record<string, string> = { new: "Новый", in_progress: "В работе", resolved: "Решён", closed: "Закрыт" };
+const TICKET_STATUS_COLORS: Record<string, string> = {
+  new: "bg-blue-500/10 text-blue-700",
+  in_progress: "bg-yellow-500/10 text-yellow-700",
+  resolved: "bg-green-500/10 text-green-700",
+  closed: "bg-secondary text-muted-foreground",
+};
+
+function SupportTab({ token }: { token: string }) {
+  const [tickets, setTickets]       = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [statusFilter, setFilter]   = useState("new");
+  const [expanded, setExpanded]     = useState<number | null>(null);
+  const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
+  const [saving, setSaving]         = useState<number | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const qs = statusFilter !== "all" ? `?status=${statusFilter}` : "";
+    apiFetch(`/admin/support-tickets${qs}`, token).then(setTickets).catch(() => {}).finally(() => setLoading(false));
+  }, [token, statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const update = async (id: number, status?: string, adminReply?: string) => {
+    setSaving(id);
+    try {
+      await apiFetch(`/admin/support-tickets/${id}`, token, {
+        method: "PATCH", body: JSON.stringify({ status, adminReply }),
+      });
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(null); }
+  };
+
+  const filters = [
+    { id: "new", label: "Новые" },
+    { id: "in_progress", label: "В работе" },
+    { id: "resolved", label: "Решённые" },
+    { id: "all", label: "Все" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-lg font-semibold">Обращения в поддержку</h2>
+        <button onClick={load} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      <div className="flex gap-1 border border-border rounded-xl p-1 w-fit overflow-x-auto">
+        {filters.map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              statusFilter === f.id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            }`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid gap-3">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded-xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : tickets.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <MessageCircle className="h-10 w-10 mx-auto mb-3 text-border" />
+          <p>Нет обращений в этой категории</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {tickets.map(t => (
+            <div key={t.id} className="border border-border rounded-2xl overflow-hidden">
+              <div className="p-4 flex items-start gap-3 cursor-pointer hover:bg-secondary/20 transition-colors"
+                onClick={() => setExpanded(expanded === t.id ? null : t.id)}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-semibold text-sm">{t.name}</span>
+                    <span className="text-xs text-muted-foreground">{t.email}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TICKET_STATUS_COLORS[t.status] || ""}`}>
+                      {TICKET_STATUS_LABELS[t.status] || t.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">{fmtDate(t.created_at)}</span>
+                  </div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{t.topic}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{t.message}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${expanded === t.id ? "rotate-180" : ""}`} />
+              </div>
+              {expanded === t.id && (
+                <div className="border-t border-border p-4 space-y-4 bg-secondary/10">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Сообщение:</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{t.message}</p>
+                  </div>
+                  {t.admin_reply && (
+                    <div className="bg-background border border-border rounded-xl p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Ответ администратора:</p>
+                      <p className="text-sm">{t.admin_reply}</p>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">Ответить пользователю:</label>
+                    <textarea
+                      value={replyTexts[t.id] || t.admin_reply || ""}
+                      onChange={e => setReplyTexts(p => ({ ...p, [t.id]: e.target.value }))}
+                      rows={3}
+                      placeholder="Текст ответа..."
+                      className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-medium text-muted-foreground mr-1">Статус:</p>
+                    {TICKET_STATUSES.map(s => (
+                      <button key={s} onClick={() => update(t.id, s, replyTexts[t.id])} disabled={saving === t.id}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50 ${
+                          t.status === s ? "bg-foreground text-background border-foreground" : "border-border hover:bg-secondary"
+                        }`}>
+                        {TICKET_STATUS_LABELS[s]}
+                      </button>
+                    ))}
+                    {replyTexts[t.id] && (
+                      <button onClick={() => update(t.id, t.status, replyTexts[t.id])} disabled={saving === t.id}
+                        className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                        {saving === t.id ? "..." : "Сохранить ответ"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Admin Dashboard ─── */
 const TABS = [
-  { id: "analytics", label: "Аналитика",    icon: BarChart3,   roles: ["admin", "owner"] },
-  { id: "users",     label: "Пользователи", icon: Users,       roles: ["admin", "owner"] },
-  { id: "promo",     label: "Промокоды",    icon: Tag,         roles: ["admin", "owner"] },
-  { id: "articles",  label: "Статьи",       icon: FileText,    roles: ["admin", "owner", "seo"] },
-  { id: "pricing",   label: "Цены",         icon: DollarSign,  roles: ["admin", "owner"] },
-  { id: "reviews",   label: "Отзывы",       icon: Star,        roles: ["admin", "owner"] },
-  { id: "snacks",    label: "Перекусы",     icon: Apple,       roles: ["admin", "owner"] },
+  { id: "analytics", label: "Аналитика",    icon: BarChart3,    roles: ["admin", "owner"] },
+  { id: "users",     label: "Пользователи", icon: Users,        roles: ["admin", "owner"] },
+  { id: "promo",     label: "Промокоды",    icon: Tag,          roles: ["admin", "owner"] },
+  { id: "articles",  label: "Статьи",       icon: FileText,     roles: ["admin", "owner", "seo"] },
+  { id: "pricing",   label: "Цены",         icon: DollarSign,   roles: ["admin", "owner"] },
+  { id: "reviews",   label: "Отзывы",       icon: Star,         roles: ["admin", "owner"] },
+  { id: "snacks",    label: "Перекусы",     icon: Apple,        roles: ["admin", "owner"] },
+  { id: "support",   label: "Поддержка",    icon: MessageCircle, roles: ["admin", "owner"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: "Администратор", owner: "Владелец", seo: "SEO-специалист" };
@@ -1203,6 +1358,7 @@ function AdminDashboard({ token, info, onLogout }: { token: string; info: any; o
         {activeTab === "pricing"   && <PricingTab   token={token} />}
         {activeTab === "reviews"   && <ReviewsTab   token={token} />}
         {activeTab === "snacks"    && <SnacksTab    token={token} />}
+        {activeTab === "support"   && <SupportTab   token={token} />}
       </div>
     </div>
   );

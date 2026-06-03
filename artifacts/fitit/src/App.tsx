@@ -23,6 +23,7 @@ import FAQ from "@/pages/faq";
 import HowItWorks from "@/pages/how-it-works";
 import Support from "@/pages/support";
 import About from "@/pages/about";
+import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/support" component={Support} />
       <Route path="/about" component={About} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

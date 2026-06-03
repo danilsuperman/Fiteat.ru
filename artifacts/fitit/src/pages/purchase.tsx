@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,9 @@ import { PlanInputDuration } from "@workspace/api-client-react";
 import { Check, Loader2, ShieldCheck, X, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const AI_UPSELL_PRICE = 299;
+const DEFAULT_AI_UPSELL_PRICE = 299;
 
-const TIERS = [
+const STATIC_TIERS = [
   {
     duration: PlanInputDuration.week,
     name: "7 дней",
@@ -18,6 +18,7 @@ const TIERS = [
     period: "/ неделя",
     features: ["Меню на 7 дней", "Расчёт КБЖУ", "Список покупок", "Рецепты"],
     highlight: false,
+    aiUpsellPrice: DEFAULT_AI_UPSELL_PRICE,
   },
   {
     duration: PlanInputDuration.month,
@@ -28,6 +29,7 @@ const TIERS = [
     features: ["Меню на 30 дней", "Замена блюд", "PDF-экспорт", "Трекинг прогресса"],
     highlight: true,
     badge: "Популярный выбор",
+    aiUpsellPrice: DEFAULT_AI_UPSELL_PRICE,
   },
   {
     duration: PlanInputDuration.three_months,
@@ -37,6 +39,7 @@ const TIERS = [
     period: "/ 3 месяца",
     features: ["Меню на 90 дней", "Экономия 22%", "Смена цели без доплат", "Корректировки"],
     highlight: false,
+    aiUpsellPrice: DEFAULT_AI_UPSELL_PRICE,
   },
   {
     duration: PlanInputDuration.six_months,
@@ -46,10 +49,54 @@ const TIERS = [
     period: "/ 6 месяцев",
     features: ["Меню на 180 дней", "Экономия 32%", "Приоритетная поддержка", "Корректировки без лимита"],
     highlight: false,
+    aiUpsellPrice: DEFAULT_AI_UPSELL_PRICE,
   },
 ];
 
-type Tier = typeof TIERS[0];
+const DURATION_MAP: Record<string, string> = {
+  "7": PlanInputDuration.week,
+  "30": PlanInputDuration.month,
+  "90": PlanInputDuration.three_months,
+  "180": PlanInputDuration.six_months,
+};
+
+function useTiers() {
+  const [tiers, setTiers] = useState(STATIC_TIERS);
+  useEffect(() => {
+    fetch("/api/packages")
+      .then(r => r.json())
+      .then((packages: any[]) => {
+        if (!Array.isArray(packages) || packages.length === 0) return;
+        const mapped = packages
+          .map(pkg => {
+            const dur = DURATION_MAP[String(pkg.duration_days)];
+            if (!dur) return null;
+            const staticTier = STATIC_TIERS.find(t => t.duration === dur);
+            const price = Math.round(pkg.price_kopecks / 100);
+            const aiUpsellPrice = pkg.ai_upsell_price_kopecks
+              ? Math.round(pkg.ai_upsell_price_kopecks / 100)
+              : DEFAULT_AI_UPSELL_PRICE;
+            return {
+              duration: dur,
+              name: staticTier?.name || pkg.name,
+              price,
+              priceLabel: `${new Intl.NumberFormat("ru-RU").format(price)} ₽`,
+              period: staticTier?.period || "",
+              features: pkg.features?.length > 0 ? pkg.features : staticTier?.features || [],
+              highlight: staticTier?.highlight || false,
+              badge: staticTier?.badge,
+              aiUpsellPrice,
+            };
+          })
+          .filter(Boolean) as typeof STATIC_TIERS;
+        if (mapped.length > 0) setTiers(mapped);
+      })
+      .catch(() => {});
+  }, []);
+  return tiers;
+}
+
+type Tier = typeof STATIC_TIERS[0];
 function fmt(n: number) { return new Intl.NumberFormat("ru-RU").format(n); }
 
 /* ─── Package Modal ─── */
@@ -80,8 +127,9 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
     } finally { setPromoLoading(false); }
   };
 
+  const aiPrice = tier.aiUpsellPrice ?? DEFAULT_AI_UPSELL_PRICE;
   const discountedBase = promoDiscount ? Math.round(tier.price * (1 - promoDiscount / 100)) : tier.price;
-  const totalPrice = discountedBase + (withAiChat ? AI_UPSELL_PRICE : 0);
+  const totalPrice = discountedBase + (withAiChat ? aiPrice : 0);
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -152,7 +200,7 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <p className="font-semibold text-sm">Чат с AI-нутрициологом</p>
-                  <span className="text-sm font-bold whitespace-nowrap text-foreground">+{fmt(AI_UPSELL_PRICE)} ₽</span>
+                  <span className="text-sm font-bold whitespace-nowrap text-foreground">+{fmt(aiPrice)} ₽</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Персональные ответы на вопросы о питании, рецептах и достижении вашей цели
@@ -224,7 +272,7 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
             <span className="text-sm text-muted-foreground">Итого:</span>
             <div className="text-right">
               {promoDiscount && (
-                <p className="text-sm text-muted-foreground line-through">{fmt(tier.price + (withAiChat ? AI_UPSELL_PRICE : 0))} ₽</p>
+                <p className="text-sm text-muted-foreground line-through">{fmt(tier.price + (withAiChat ? aiPrice : 0))} ₽</p>
               )}
               <p className="text-2xl font-bold">{fmt(totalPrice)} ₽</p>
               {promoDiscount && <p className="text-xs text-green-600 font-medium">−{promoDiscount}% по промокоду</p>}
@@ -242,6 +290,7 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
 
 /* ─── Main page ─── */
 export default function Payment() {
+  const tiers = useTiers();
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
@@ -263,7 +312,7 @@ export default function Payment() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {TIERS.map((tier) => (
+            {tiers.map((tier) => (
               <div
                 key={tier.duration}
                 className={`relative flex flex-col rounded-2xl p-6 border transition-all hover:shadow-md cursor-pointer group ${

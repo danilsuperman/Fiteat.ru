@@ -9,6 +9,8 @@ import extendedSurveyRouter from "./extended-survey";
 import reviewsRouter from "./reviews";
 import snacksRouter from "./snacks";
 import promosRouter from "./promos";
+import supportRouter from "./support";
+import profileRouter from "./profile";
 
 const router: IRouter = Router();
 
@@ -22,5 +24,7 @@ router.use(adminRouter);
 router.use(reviewsRouter);
 router.use(snacksRouter);
 router.use(promosRouter);
+router.use(supportRouter);
+router.use(profileRouter);
 
 export default router;

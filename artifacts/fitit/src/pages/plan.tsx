@@ -79,13 +79,7 @@ function SnacksSidebar() {
   );
 }
 
-const REPLACE_REASONS = [
-  "Не нравится",
-  "Нет продукта",
-  "Дорого",
-  "Долго готовить",
-  "Аллергия",
-];
+const REPLACE_REASONS = ["Не нравится", "Нет продукта", "Дорого", "Долго готовить", "Аллергия"];
 
 function parseIngredients(text: string): Array<{ name: string; amount: string }> {
   return text.split(", ").map((item) => {
@@ -94,10 +88,41 @@ function parseIngredients(text: string): Array<{ name: string; amount: string }>
   });
 }
 
-function ShoppingListTab({ meals }: { meals: Meal[] }) {
-  const [filter, setFilter] = useState<"week" | "all">("all");
+/* ─── Smart amount consolidation ─── */
+function parseAmount(amount: string): { num: number; unit: string } | null {
+  if (!amount) return null;
+  const m = amount.trim().match(/^(\d+(?:[.,]\d+)?)\s*(.*)$/);
+  if (!m) return null;
+  return { num: parseFloat(m[1].replace(",", ".")), unit: m[2].trim() };
+}
 
-  const filteredMeals = filter === "week" ? meals.filter((m) => m.dayNumber <= 7) : meals;
+function consolidateAmounts(amounts: string[]): string {
+  if (amounts.length === 0) return "";
+  if (amounts.length === 1) return amounts[0];
+
+  const parsed = amounts.map(parseAmount);
+  const allParsed = parsed.every(Boolean);
+
+  if (allParsed) {
+    const units = new Set(parsed.map(p => p!.unit.toLowerCase()));
+    if (units.size === 1) {
+      const unit = [...units][0];
+      const total = parsed.reduce((s, p) => s + p!.num, 0);
+      const rounded = Math.abs(total - Math.round(total)) < 0.05 ? Math.round(total) : parseFloat(total.toFixed(1));
+      return unit ? `${rounded} ${unit}` : String(rounded);
+    }
+  }
+  // Can't consolidate — show unique
+  const unique = [...new Set(amounts)];
+  return unique.join(", ");
+}
+
+/* ─── Shopping List Tab ─── */
+function ShoppingListTab({ meals, totalDays }: { meals: Meal[]; totalDays: number }) {
+  const [fromDay, setFromDay] = useState(1);
+  const [toDay, setToDay] = useState(totalDays);
+
+  const filteredMeals = meals.filter(m => m.dayNumber >= fromDay && m.dayNumber <= toDay);
 
   const aggregated = new Map<string, string[]>();
   for (const meal of filteredMeals) {
@@ -110,37 +135,60 @@ function ShoppingListTab({ meals }: { meals: Meal[] }) {
 
   const sorted = [...aggregated.entries()].sort((a, b) => a[0].localeCompare(b[0], "ru"));
 
+  const presets = [
+    { label: "Весь план", from: 1, to: totalDays },
+    { label: "Нед. 1", from: 1, to: Math.min(7, totalDays) },
+    ...(totalDays > 7 ? [{ label: "Нед. 2", from: 8, to: Math.min(14, totalDays) }] : []),
+    ...(totalDays > 14 ? [{ label: "Нед. 3", from: 15, to: Math.min(21, totalDays) }] : []),
+    ...(totalDays > 21 ? [{ label: "Нед. 4", from: 22, to: Math.min(30, totalDays) }] : []),
+  ];
+
   return (
     <div className="space-y-5 sm:space-y-6">
-      <div className="flex gap-2">
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilter("all")}
-        >
-          Весь план
-        </Button>
-        <Button
-          variant={filter === "week" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilter("week")}
-        >
-          На неделю
-        </Button>
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="flex flex-wrap gap-2">
+          {presets.map(p => (
+            <Button
+              key={p.label}
+              variant={fromDay === p.from && toDay === p.to ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setFromDay(p.from); setToDay(p.to); }}
+            >
+              {p.label}
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Дни:</span>
+          <input
+            type="number" min={1} max={totalDays} value={fromDay}
+            onChange={e => setFromDay(Math.max(1, Math.min(Number(e.target.value), toDay)))}
+            className="w-14 h-8 rounded-lg border border-input bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <span>—</span>
+          <input
+            type="number" min={fromDay} max={totalDays} value={toDay}
+            onChange={e => setToDay(Math.max(fromDay, Math.min(Number(e.target.value), totalDays)))}
+            className="w-14 h-8 rounded-lg border border-input bg-background px-2 text-center text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <span className="text-xs">({filteredMeals.length > 0 ? `${sorted.length} позиций` : "0 позиций"})</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
-        {sorted.map(([name, amounts]) => (
-          <div key={name} className="flex justify-between items-center p-3 border rounded-lg bg-card">
-            <span className="font-medium text-sm">{name}</span>
-            {amounts.length > 0 && (
-              <span className="text-xs text-muted-foreground ml-2 text-right shrink-0">
-                {amounts.slice(0, 3).join(", ")}
-                {amounts.length > 3 ? ` +${amounts.length - 3}` : ""}
-              </span>
-            )}
-          </div>
-        ))}
+        {sorted.map(([name, amounts]) => {
+          const consolidated = consolidateAmounts(amounts);
+          return (
+            <div key={name} className="flex justify-between items-center p-3 border rounded-lg bg-card">
+              <span className="font-medium text-sm">{name}</span>
+              {consolidated && (
+                <span className="text-sm font-semibold text-foreground ml-2 text-right shrink-0 whitespace-nowrap">
+                  {consolidated}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {sorted.length === 0 && (
@@ -242,8 +290,19 @@ export default function PlanView() {
   });
   Object.values(mealsByDay).forEach((meals) => meals.sort((a, b) => a.mealNumber - b.mealNumber));
   const days = Object.keys(mealsByDay).map(Number).sort((a, b) => a - b);
+  const totalDays = days.length > 0 ? Math.max(...days) : 1;
   const currentDayMeals = mealsByDay[activeDay] || [];
   const allMeals: Meal[] = planData.meals || [];
+
+  // Day highlighting: calculate how many days have passed since plan start
+  const planStart = planData.startDate ? new Date(planData.startDate) : null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysPassed = planStart
+    ? Math.floor((today.getTime() - planStart.getTime()) / (1000 * 60 * 60 * 24))
+    : -1;
+  const isPast = (day: number) => daysPassed >= 0 && day <= daysPassed;
+  const isToday = (day: number) => daysPassed >= 0 && day === daysPassed + 1;
 
   return (
     <Layout>
@@ -313,19 +372,34 @@ export default function PlanView() {
               {/* Day selector */}
               <div className="mb-5 sm:mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
                 <div className="flex gap-2 w-max">
-                  {days.map((day) => (
-                    <button
-                      key={day}
-                      onClick={() => setActiveDay(day)}
-                      className={`px-4 sm:px-5 py-2 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
-                        activeDay === day
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background hover:border-primary hover:bg-primary/5"
-                      }`}
-                    >
-                      День {day}
-                    </button>
-                  ))}
+                  {days.map((day) => {
+                    const past = isPast(day);
+                    const todayDay = isToday(day);
+                    const active = activeDay === day;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setActiveDay(day)}
+                        className={`relative px-4 sm:px-5 py-2 rounded-full text-sm font-medium border transition-colors whitespace-nowrap ${
+                          active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : todayDay
+                            ? "border-primary/60 bg-primary/8 text-foreground"
+                            : past
+                            ? "border-border bg-secondary/40 text-muted-foreground hover:border-primary/40 hover:bg-primary/5"
+                            : "bg-background hover:border-primary hover:bg-primary/5"
+                        }`}
+                      >
+                        {past && !active && (
+                          <span className="absolute inset-0 rounded-full border border-dashed border-border opacity-60 pointer-events-none" />
+                        )}
+                        {todayDay ? "Сегодня" : `День ${day}`}
+                        {past && !active && (
+                          <span className="ml-1 text-[10px] opacity-50">✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -385,7 +459,7 @@ export default function PlanView() {
             </TabsContent>
 
             <TabsContent value="shopping" className="mt-0">
-              <ShoppingListTab meals={allMeals} />
+              <ShoppingListTab meals={allMeals} totalDays={totalDays} />
             </TabsContent>
           </Tabs>
           </div>
