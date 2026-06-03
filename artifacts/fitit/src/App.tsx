@@ -16,6 +16,7 @@ import Calculator from "@/pages/calculator";
 import Blog from "@/pages/blog";
 import Admin from "@/pages/admin";
 import ExtendedSurvey from "@/pages/extended-survey";
+import ReviewsPage from "@/pages/reviews";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/admin" component={Admin} />
       <Route path="/survey/extended" component={ExtendedSurvey} />
+      <Route path="/reviews" component={ReviewsPage} />
       <Route component={NotFound} />
     </Switch>
   );

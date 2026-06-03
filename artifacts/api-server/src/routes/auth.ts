@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, pool } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signToken, requireAuth } from "../middlewares/auth";
 import type { JwtPayload } from "../middlewares/auth";
@@ -73,7 +73,14 @@ router.get("/auth/me", requireAuth, async (req, res) => {
       res.status(401).json({ error: "Пользователь не найден" });
       return;
     }
-    res.json({ id: dbUser.id, email: dbUser.email, name: dbUser.name, createdAt: dbUser.createdAt.toISOString() });
+    const chatRow = await pool.query("SELECT has_ai_chat FROM users WHERE id=$1", [dbUser.id]);
+    res.json({
+      id: dbUser.id,
+      email: dbUser.email,
+      name: dbUser.name,
+      createdAt: dbUser.createdAt.toISOString(),
+      hasAiChat: chatRow.rows[0]?.has_ai_chat ?? false,
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Ошибка сервера" });

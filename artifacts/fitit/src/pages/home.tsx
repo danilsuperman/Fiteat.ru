@@ -1,7 +1,67 @@
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, Star } from "lucide-react";
 import { Layout } from "@/components/layout";
+
+/* ─── Home Reviews Section ─── */
+function HomeReviewsSection() {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/reviews?limit=3")
+      .then(r => r.json())
+      .then(d => setReviews(d.reviews || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (!loading && reviews.length === 0) return null;
+
+  return (
+    <section className="py-20 sm:py-28 bg-secondary/30">
+      <div className="container px-4 max-w-6xl">
+        <div className="flex items-end justify-between gap-4 mb-10 sm:mb-14">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-2">Отзывы</p>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Реальные результаты</h2>
+          </div>
+          <Link href="/reviews" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap flex items-center gap-1">
+            Все отзывы <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+        {loading ? (
+          <div className="grid sm:grid-cols-3 gap-5">
+            {[...Array(3)].map((_, i) => <div key={i} className="h-48 rounded-2xl bg-secondary animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-3 gap-5">
+            {reviews.map(r => (
+              <div key={r.id} className="bg-background rounded-2xl border border-border p-5 flex flex-col gap-3">
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map(n => (
+                    <Star key={n} className={`h-4 w-4 ${n <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-border"}`} />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">{r.text}</p>
+                {r.photos?.length > 0 && (
+                  <img src={r.photos[0]} alt="" className="w-full aspect-video object-cover rounded-xl" />
+                )}
+                <div className="mt-auto pt-2 border-t border-border/60">
+                  <p className="text-sm font-semibold">{r.user_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const STEPS = [
   {
@@ -140,6 +200,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Reviews */}
+      <HomeReviewsSection />
 
       {/* Pricing */}
       <section className="py-20 sm:py-28">

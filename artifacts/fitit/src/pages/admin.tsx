@@ -5,7 +5,7 @@ import {
   BarChart3, Tag, FileText, LogOut, Plus, Trash2,
   Eye, EyeOff, X, Users, TrendingUp, Check,
   DollarSign, ChevronDown, ChevronUp, Search,
-  Calendar, Settings, RefreshCw, Edit2
+  Calendar, Settings, RefreshCw, Edit2, Star
 } from "lucide-react";
 
 const API = (p: string) => `/api${p}`;
@@ -818,13 +818,160 @@ function ArticlesTab({ token }: { token: string }) {
   );
 }
 
+/* ─── Reviews Tab ─── */
+const STATUS_COLORS: Record<string, string> = {
+  pending:  "bg-yellow-500/10 text-yellow-700",
+  approved: "bg-green-500/10 text-green-700",
+  rejected: "bg-red-500/10 text-red-700",
+};
+const STATUS_LABELS: Record<string, string> = {
+  pending:  "На модерации",
+  approved: "Одобрен",
+  rejected: "Отклонён",
+};
+
+function ReviewsTab({ token }: { token: string }) {
+  const [reviews, setReviews]       = useState<any[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [statusFilter, setFilter]   = useState("pending");
+  const [actLoading, setActLoading] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiFetch(`/admin/reviews${statusFilter !== "all" ? `?status=${statusFilter}` : ""}`, token)
+      .then(setReviews).catch(() => {}).finally(() => setLoading(false));
+  }, [token, statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const act = async (id: number, status: "approved" | "rejected") => {
+    setActLoading(true);
+    try {
+      await apiFetch(`/admin/reviews/${id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setActLoading(false); }
+  };
+
+  const del = async (id: number) => {
+    if (!confirm("Удалить отзыв? Это действие необратимо.")) return;
+    setActLoading(true);
+    try {
+      await apiFetch(`/admin/reviews/${id}`, token, { method: "DELETE" });
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setActLoading(false); }
+  };
+
+  const filters = [
+    { id: "pending",  label: "Ожидают" },
+    { id: "approved", label: "Одобрены" },
+    { id: "rejected", label: "Отклонены" },
+    { id: "all",      label: "Все" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-lg font-semibold">Модерация отзывов</h2>
+        <button onClick={load} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+      </div>
+
+      {/* Status filter */}
+      <div className="flex gap-1 border border-border rounded-xl p-1 w-fit overflow-x-auto">
+        {filters.map(f => (
+          <button key={f.id} onClick={() => setFilter(f.id)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              statusFilter === f.id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+            }`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid gap-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-28 rounded-2xl bg-secondary animate-pulse" />)}
+        </div>
+      ) : reviews.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Star className="h-10 w-10 mx-auto mb-3 text-border" />
+          <p>Нет отзывов в этой категории</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {reviews.map(r => (
+            <div key={r.id} className="border border-border rounded-2xl p-5 space-y-4">
+              <div className="flex items-start gap-4">
+                {r.photos?.length > 0 && (
+                  <img src={r.photos[0]} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0 border border-border" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className="font-semibold text-sm">{r.user_name}</span>
+                    <span className="text-xs text-muted-foreground">{r.user_email}</span>
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5].map(n => (
+                        <Star key={n} className={`h-3.5 w-3.5 ${n <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-border"}`} />
+                      ))}
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[r.status] || ""}`}>
+                      {STATUS_LABELS[r.status] || r.status}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">{fmtDate(r.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">{r.text}</p>
+                  {r.admin_note && (
+                    <p className="text-xs text-muted-foreground mt-1.5 italic border-l-2 border-border pl-2">
+                      Заметка: {r.admin_note}
+                    </p>
+                  )}
+                  {r.photos?.length > 1 && (
+                    <p className="text-xs text-muted-foreground mt-1">{r.photos.length} фото</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/60">
+                {r.status !== "approved" && (
+                  <button onClick={() => act(r.id, "approved")} disabled={actLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-700 text-sm font-medium hover:bg-green-500/20 transition-colors">
+                    <Check className="h-3.5 w-3.5" />Одобрить
+                  </button>
+                )}
+                {r.status !== "rejected" && (
+                  <button onClick={() => act(r.id, "rejected")} disabled={actLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors">
+                    <X className="h-3.5 w-3.5" />Отклонить
+                  </button>
+                )}
+                <button onClick={() => del(r.id)} disabled={actLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground text-sm hover:bg-destructive/10 hover:text-destructive transition-colors ml-auto">
+                  <Trash2 className="h-3.5 w-3.5" />Удалить
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Admin Dashboard ─── */
 const TABS = [
-  { id: "analytics", label: "Аналитика", icon: BarChart3,   roles: ["admin", "owner"] },
-  { id: "users",     label: "Пользователи", icon: Users,    roles: ["admin", "owner"] },
-  { id: "promo",     label: "Промокоды",  icon: Tag,        roles: ["admin", "owner"] },
-  { id: "articles",  label: "Статьи",    icon: FileText,    roles: ["admin", "owner", "seo"] },
-  { id: "pricing",   label: "Цены",      icon: DollarSign,  roles: ["admin", "owner"] },
+  { id: "analytics", label: "Аналитика",    icon: BarChart3,   roles: ["admin", "owner"] },
+  { id: "users",     label: "Пользователи", icon: Users,       roles: ["admin", "owner"] },
+  { id: "promo",     label: "Промокоды",    icon: Tag,         roles: ["admin", "owner"] },
+  { id: "articles",  label: "Статьи",       icon: FileText,    roles: ["admin", "owner", "seo"] },
+  { id: "pricing",   label: "Цены",         icon: DollarSign,  roles: ["admin", "owner"] },
+  { id: "reviews",   label: "Отзывы",       icon: Star,        roles: ["admin", "owner"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: "Администратор", owner: "Владелец", seo: "SEO-специалист" };
@@ -879,6 +1026,7 @@ function AdminDashboard({ token, info, onLogout }: { token: string; info: any; o
         {activeTab === "promo"     && <PromoTab     token={token} />}
         {activeTab === "articles"  && <ArticlesTab  token={token} />}
         {activeTab === "pricing"   && <PricingTab   token={token} />}
+        {activeTab === "reviews"   && <ReviewsTab   token={token} />}
       </div>
     </div>
   );

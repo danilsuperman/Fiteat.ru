@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, plansTable, mealsTable, basicSurveysTable, preferencesSurveysTable } from "@workspace/db";
+import { db, plansTable, mealsTable, basicSurveysTable, preferencesSurveysTable, pool } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import type { JwtPayload } from "../middlewares/auth";
@@ -42,11 +42,16 @@ router.post("/plans", requireAuth, async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user.userId;
-    const { duration } = req.body;
+    const { duration, withAiChat } = req.body;
 
     if (!["week", "month", "three_months", "six_months"].includes(duration)) {
       res.status(400).json({ error: "Недопустимая продолжительность плана" });
       return;
+    }
+
+    // Activate AI chat upsell if requested
+    if (withAiChat === true) {
+      await pool.query("UPDATE users SET has_ai_chat=true WHERE id=$1", [userId]);
     }
 
     // Mark existing active plans as expired

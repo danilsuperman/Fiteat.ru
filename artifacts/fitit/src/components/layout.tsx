@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useGetMe } from "@workspace/api-client-react";
 import { LayoutDashboard, LogOut, Menu, X, Activity, ClipboardList } from "lucide-react";
+import { AiChatWidget } from "@/components/ai-chat-widget";
 
 export function Navbar() {
   const { isAuthenticated, logout } = useAuth();
@@ -131,6 +132,9 @@ export function Navbar() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
+  const { data: user } = useGetMe({ query: { enabled: isAuthenticated } });
+
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
       <Navbar />
@@ -138,6 +142,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <Footer />
+      {(user as any)?.hasAiChat && <AiChatWidget />}
     </div>
   );
 }
@@ -164,6 +169,7 @@ function Footer() {
             <ul className="space-y-2.5">
               {[
                 { href: "/calculator", label: "Калькулятор КБЖУ" },
+                { href: "/reviews", label: "Отзывы" },
                 { href: "/survey/metabolism", label: "Создать план" },
                 { href: "/login", label: "Войти" },
                 { href: "/register", label: "Регистрация" },
