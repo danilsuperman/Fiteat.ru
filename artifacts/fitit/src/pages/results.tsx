@@ -273,7 +273,7 @@ export default function Result() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
-              <Link href="/survey/nutrition">
+              <Link href="/survey/extended">
                 <Button className="px-8 rounded-xl w-full sm:w-auto">Настроить рацион →</Button>
               </Link>
               <Link href="/payment">

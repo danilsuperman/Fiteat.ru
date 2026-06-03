@@ -15,6 +15,7 @@ import PlanView from "@/pages/plan";
 import Calculator from "@/pages/calculator";
 import Blog from "@/pages/blog";
 import Admin from "@/pages/admin";
+import ExtendedSurvey from "@/pages/extended-survey";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/calculator" component={Calculator} />
       <Route path="/blog" component={Blog} />
       <Route path="/admin" component={Admin} />
+      <Route path="/survey/extended" component={ExtendedSurvey} />
       <Route component={NotFound} />
     </Switch>
   );
