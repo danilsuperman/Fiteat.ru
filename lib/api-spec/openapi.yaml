@@ -3,20 +3,25 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ФИТИТ — Персональный план питания API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: survey
+    description: User surveys and metabolic calculations
+  - name: plans
+    description: Nutrition plans and meals
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +29,291 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+
+  /survey/basic:
+    post:
+      operationId: submitBasicSurvey
+      tags: [survey]
+      summary: Submit basic survey (survey 1) — gender, goal, hormones, lifestyle, measurements, activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasicSurveyInput"
+      responses:
+        "200":
+          description: Metabolic result calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetabolicResult"
+
+  /survey/preferences:
+    post:
+      operationId: submitPreferencesSurvey
+      tags: [survey]
+      summary: Submit preferences survey (survey 2) — eating habits, allergies, health, budget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesSurveyInput"
+      responses:
+        "200":
+          description: Preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /survey/result:
+    get:
+      operationId: getMetabolicResult
+      tags: [survey]
+      summary: Get the current user's latest metabolic result
+      responses:
+        "200":
+          description: Metabolic result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetabolicResult"
+        "404":
+          description: No result yet
+
+  /plans:
+    post:
+      operationId: createPlan
+      tags: [plans]
+      summary: Purchase and generate a new meal plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanInput"
+      responses:
+        "201":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Plan"
+    get:
+      operationId: listPlans
+      tags: [plans]
+      summary: List all user plans
+      responses:
+        "200":
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Plan"
+
+  /plans/current:
+    get:
+      operationId: getCurrentPlan
+      tags: [plans]
+      summary: Get the user's active plan with all meals
+      responses:
+        "200":
+          description: Current plan with meals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanWithMeals"
+        "404":
+          description: No active plan
+
+  /plans/{planId}:
+    get:
+      operationId: getPlan
+      tags: [plans]
+      summary: Get a specific plan with all meals
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan with meals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanWithMeals"
+        "404":
+          description: Plan not found
+
+  /plans/{planId}/regenerate:
+    post:
+      operationId: regeneratePlan
+      tags: [plans]
+      summary: Regenerate the entire meal plan
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan regenerated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanWithMeals"
+
+  /plans/{planId}/meals/{mealId}:
+    patch:
+      operationId: replaceMeal
+      tags: [plans]
+      summary: Replace a single meal in the plan
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: mealId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealReplaceInput"
+      responses:
+        "200":
+          description: Meal replaced
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+
+  /plans/{planId}/export/{format}:
+    get:
+      operationId: exportPlan
+      tags: [plans]
+      summary: Export plan as PDF or DOCX download URL
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: format
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [pdf, docx]
+      responses:
+        "200":
+          description: Export URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportResponse"
+
+  /plans/{planId}/summary:
+    get:
+      operationId: getPlanSummary
+      tags: [plans]
+      summary: Get plan macro averages and daily breakdown summary
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +321,380 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, email, name, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        createdAt:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+
+    BasicSurveyInput:
+      type: object
+      required: [gender, goal, hormonalDisorder, lifestyle, age, height, weight, targetWeight, dailySteps, cardioMinutesPerWeek, strengthMinutesPerWeek]
+      properties:
+        gender:
+          type: string
+          enum: [male, female]
+        goal:
+          type: string
+          enum: [lose_weight, maintain_recompose, gain_weight]
+        hormonalDisorder:
+          type: string
+          enum: [none, hypothyroidism, insulin_leptin_resistance, sex_hormone_deficiency, other_endocrine]
+        lifestyle:
+          type: string
+          enum: [sedentary, office_active, on_feet, intense_training, physical_labor]
+        age:
+          type: integer
+        height:
+          type: integer
+        weight:
+          type: number
+        targetWeight:
+          type: number
+        sport:
+          type: ["string", "null"]
+        dailySteps:
+          type: integer
+        cardioMinutesPerWeek:
+          type: integer
+        strengthMinutesPerWeek:
+          type: integer
+        waistCm:
+          type: ["number", "null"]
+        weightChangePast12Months:
+          type: ["string", "null"]
+        energyMorning:
+          type: ["integer", "null"]
+        energyAfternoon:
+          type: ["integer", "null"]
+        energyEvening:
+          type: ["integer", "null"]
+        sleepFallingAsleep:
+          type: ["string", "null"]
+        sleepNightWakeups:
+          type: ["string", "null"]
+        sleepRestfulness:
+          type: ["string", "null"]
+        chronicStressLevel:
+          type: ["integer", "null"]
+        caffeineIntake:
+          type: ["string", "null"]
+        bloatingAfterEating:
+          type: ["string", "null"]
+        gasForming:
+          type: ["string", "null"]
+        heavinessAfterEating:
+          type: ["string", "null"]
+        stoolRegularity:
+          type: ["string", "null"]
+        foodReactions:
+          type: array
+          items:
+            type: string
+        skinHairNailSymptoms:
+          type: array
+          items:
+            type: string
+        illnessFrequency:
+          type: ["string", "null"]
+        recoverySpeed:
+          type: ["string", "null"]
+        chronicInflammations:
+          type: array
+          items:
+            type: string
+        allergies:
+          type: ["string", "null"]
+        generalSymptoms:
+          type: array
+          items:
+            type: string
+        menstrualRegularity:
+          type: ["string", "null"]
+        pmsLevel:
+          type: ["string", "null"]
+        menstrualPain:
+          type: ["string", "null"]
+        edemaLevel:
+          type: ["string", "null"]
+        morningErections:
+          type: ["string", "null"]
+        trainingRecovery:
+          type: ["string", "null"]
+        proteinFrequency:
+          type: ["string", "null"]
+        fishFrequency:
+          type: ["string", "null"]
+        vegetableFrequency:
+          type: ["string", "null"]
+        fruitFrequency:
+          type: ["string", "null"]
+        wholeGrainFrequency:
+          type: ["string", "null"]
+        carbType:
+          type: ["string", "null"]
+
+    MetabolicResult:
+      type: object
+      required: [bmr, tdee, targetCalories, proteins, fats, carbs, bmi, bmiCategory, weightToGoal, totalDeficitNeeded, estimatedMonths, progressBlockers]
+      properties:
+        id:
+          type: ["integer", "null"]
+        bmr:
+          type: integer
+        tdee:
+          type: integer
+        targetCalories:
+          type: integer
+        proteins:
+          type: integer
+        fats:
+          type: integer
+        carbs:
+          type: integer
+        bmi:
+          type: number
+        bmiCategory:
+          type: string
+        weightToGoal:
+          type: number
+        totalDeficitNeeded:
+          type: integer
+        estimatedMonths:
+          type: integer
+        progressBlockers:
+          type: array
+          items:
+            type: string
+        moderateDeficit:
+          type: ["integer", "null"]
+        aggressiveDeficit:
+          type: ["integer", "null"]
+
+    PreferencesSurveyInput:
+      type: object
+      required: [mealsPerDay, dietType]
+      properties:
+        mealsPerDay:
+          type: string
+          enum: [one_two, three, four_five, six_plus]
+        dietType:
+          type: string
+          enum: [omnivore, vegetarian, vegan, pescatarian, gluten_free, keto]
+        dislikedFoods:
+          type: ["string", "null"]
+        foodAllergyOrIntolerance:
+          type: ["string", "null"]
+        favoriteFoods:
+          type: ["string", "null"]
+        culturalRestrictions:
+          type: ["string", "null"]
+        chronicDiseases:
+          type: ["string", "null"]
+        medications:
+          type: ["string", "null"]
+        physicalLimitations:
+          type: ["string", "null"]
+        stressLevel:
+          type: ["string", "null"]
+          enum: [low, medium, high, null]
+        previousWeightAttempts:
+          type: ["string", "null"]
+        previousDiets:
+          type: ["string", "null"]
+        eatingDisorders:
+          type: ["string", "null"]
+        snacksPerDay:
+          type: ["integer", "null"]
+        favoriteSnacks:
+          type: ["string", "null"]
+        sweetFrequency:
+          type: ["string", "null"]
+          enum: [daily, several_per_week, rarely, never, null]
+        sugarAddiction:
+          type: ["boolean", "null"]
+        budget:
+          type: ["string", "null"]
+          enum: [minimal, medium, high, null]
+        cookingTimeMinutes:
+          type: ["string", "null"]
+          enum: [under_15, fifteen_to_30, over_30, null]
+        coffeeTeaCupsPerDay:
+          type: ["string", "null"]
+          enum: [zero, one_two, three_four, five_plus, null]
+        waterLitersPerDay:
+          type: ["string", "null"]
+          enum: [zero, half, one_two, two_three, three_plus, null]
+        motivationLevel:
+          type: ["string", "null"]
+          enum: [under_50, fifty_to_75, over_75, null]
+        motivationHelpers:
+          type: array
+          items:
+            type: string
+
+    Plan:
+      type: object
+      required: [id, userId, duration, startDate, endDate, status, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        duration:
+          type: string
+          enum: [week, month, three_months, six_months]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        createdAt:
+          type: string
+
+    PlanInput:
+      type: object
+      required: [duration]
+      properties:
+        duration:
+          type: string
+          enum: [week, month, three_months, six_months]
+
+    Meal:
+      type: object
+      required: [id, planId, dayNumber, mealNumber, mealType, name, ingredients, recipe, calories, proteins, fats, carbs]
+      properties:
+        id:
+          type: integer
+        planId:
+          type: integer
+        dayNumber:
+          type: integer
+        mealNumber:
+          type: integer
+        mealType:
+          type: string
+        name:
+          type: string
+        ingredients:
+          type: string
+        recipe:
+          type: string
+        calories:
+          type: integer
+        proteins:
+          type: integer
+        fats:
+          type: integer
+        carbs:
+          type: integer
+
+    MealReplaceInput:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: ["string", "null"]
+
+    PlanWithMeals:
+      type: object
+      required: [id, userId, duration, startDate, endDate, status, createdAt, meals]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        duration:
+          type: string
+          enum: [week, month, three_months, six_months]
+        startDate:
+          type: string
+        endDate:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, cancelled]
+        createdAt:
+          type: string
+        meals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Meal"
+
+    PlanSummary:
+      type: object
+      required: [avgCalories, avgProteins, avgFats, avgCarbs, totalDays, mealsPerDay]
+      properties:
+        avgCalories:
+          type: integer
+        avgProteins:
+          type: integer
+        avgFats:
+          type: integer
+        avgCarbs:
+          type: integer
+        totalDays:
+          type: integer
+        mealsPerDay:
+          type: integer
+        weeklyCalories:
+          type: ["integer", "null"]
+
+    ExportResponse:
+      type: object
+      required: [url, format]
+      properties:
+        url:
+          type: string
+        format:
+          type: string
