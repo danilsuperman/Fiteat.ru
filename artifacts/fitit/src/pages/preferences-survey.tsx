@@ -13,7 +13,7 @@ import {
   PreferencesSurveyInputBudget,
   PreferencesSurveyInputCookingTimeMinutes,
 } from "@workspace/api-client-react";
-import { Loader2, Check } from "lucide-react";
+import { Loader2, Check, ChevronLeft } from "lucide-react";
 
 const CUISINES = [
   { value: "russian", label: "Русская" },
@@ -174,30 +174,36 @@ export default function NutritionSurvey() {
 
   return (
     <Layout>
-      <div className="flex-1 bg-muted/20 py-12">
-        <div className="container max-w-2xl">
-          <div className="mb-8 space-y-1">
+      <div className="flex-1 bg-muted/20 py-6 sm:py-12">
+        <div className="container max-w-2xl px-4">
+          {/* Progress header */}
+          <div className="mb-6 sm:mb-8 space-y-1">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Настройка рациона</span>
+              <span className="font-medium">Настройка рациона</span>
               <span>{step + 1} / {QUESTIONS.length}</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
 
-          <div className="bg-card border shadow-sm rounded-xl p-8 min-h-[420px] flex flex-col">
-            <h2 className="text-2xl font-bold mb-2 text-center">{currentQuestion.title}</h2>
+          {/* Question card */}
+          <div className="bg-card border shadow-sm rounded-xl p-5 sm:p-8 min-h-[280px] sm:min-h-[420px] flex flex-col">
+            <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2 text-center leading-snug">
+              {currentQuestion.title}
+            </h2>
             {(currentQuestion as any).subtitle && (
-              <p className="text-sm text-muted-foreground text-center mb-6">{(currentQuestion as any).subtitle}</p>
+              <p className="text-sm text-muted-foreground text-center mb-4 sm:mb-6">
+                {(currentQuestion as any).subtitle}
+              </p>
             )}
-            {!(currentQuestion as any).subtitle && <div className="mb-6" />}
+            {!(currentQuestion as any).subtitle && <div className="mb-4 sm:mb-6" />}
 
             {currentQuestion.type === "choice" && (
-              <div className="space-y-3 flex-1">
+              <div className="space-y-2.5 sm:space-y-3 flex-1">
                 {currentQuestion.options?.map((option) => (
                   <button
                     key={option.value}
                     onClick={() => handleChoice(option.value)}
-                    className={`w-full text-left px-6 py-4 rounded-lg border transition-colors hover:border-primary hover:bg-primary/5 ${
+                    className={`w-full text-left px-4 sm:px-6 py-3.5 sm:py-4 rounded-lg border transition-colors text-sm sm:text-base hover:border-primary hover:bg-primary/5 active:bg-primary/10 ${
                       answers[currentQuestion.id as keyof SurveyAnswers] === option.value
                         ? "border-primary bg-primary/10 font-medium"
                         : ""
@@ -211,28 +217,32 @@ export default function NutritionSurvey() {
 
             {currentQuestion.type === "multiselect" && (
               <div className="flex-1 flex flex-col">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 flex-1">
                   {currentQuestion.options?.map((option) => {
                     const selected = selectedMulti.includes(option.value);
                     return (
                       <button
                         key={option.value}
                         onClick={() => handleMultiToggle(option.value)}
-                        className={`relative px-4 py-4 rounded-lg border text-sm font-medium transition-all ${
+                        className={`relative px-3 sm:px-4 py-3 sm:py-4 rounded-lg border text-sm font-medium transition-all ${
                           selected
                             ? "border-primary bg-primary/10 text-primary"
                             : "hover:border-primary/50 hover:bg-muted"
                         }`}
                       >
                         {selected && (
-                          <Check className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                          <Check className="absolute top-2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                         )}
                         {option.label}
                       </button>
                     );
                   })}
                 </div>
-                <Button onClick={handleMultiNext} className="w-full h-12 text-base mt-6" disabled={submitMutation.isPending}>
+                <Button
+                  onClick={handleMultiNext}
+                  className="w-full h-12 text-base mt-5 sm:mt-6"
+                  disabled={submitMutation.isPending}
+                >
                   {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {step === QUESTIONS.length - 1 ? "Завершить" : "Далее →"}
                 </Button>
@@ -240,8 +250,8 @@ export default function NutritionSurvey() {
             )}
 
             {currentQuestion.type === "inputs" && (
-              <form onSubmit={handleInputsSubmit} className="space-y-5 flex-1 flex flex-col">
-                <div className="flex-1 space-y-5">
+              <form onSubmit={handleInputsSubmit} className="space-y-4 flex-1 flex flex-col">
+                <div className="flex-1 space-y-4 sm:space-y-5">
                   {currentQuestion.fields?.map((field) => (
                     <div key={field.id} className="space-y-1.5">
                       <label className="text-sm font-medium">{field.label}</label>
@@ -250,12 +260,16 @@ export default function NutritionSurvey() {
                         name={field.id}
                         placeholder={field.placeholder}
                         defaultValue={(answers as any)[field.id] || ""}
-                        className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
                   ))}
                 </div>
-                <Button type="submit" className="w-full h-12 text-base mt-4" disabled={submitMutation.isPending}>
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base mt-4"
+                  disabled={submitMutation.isPending}
+                >
                   {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {step === QUESTIONS.length - 1 ? "Сохранить и продолжить" : "Далее →"}
                 </Button>
@@ -263,10 +277,17 @@ export default function NutritionSurvey() {
             )}
           </div>
 
+          {/* Back button */}
           {step > 0 && (
             <div className="mt-4 flex justify-center">
-              <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={submitMutation.isPending}>
-                ← Назад
+              <Button
+                variant="ghost"
+                onClick={() => setStep(step - 1)}
+                disabled={submitMutation.isPending}
+                className="text-muted-foreground"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Назад
               </Button>
             </div>
           )}

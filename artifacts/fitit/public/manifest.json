@@ -1,0 +1,44 @@
+{
+  "name": "ФИТИТ — Персональный план питания",
+  "short_name": "ФИТИТ",
+  "description": "ИИ создаёт персональный план питания под ваши цели и метаболизм",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fafaf4",
+  "theme_color": "#267357",
+  "orientation": "portrait-primary",
+  "lang": "ru",
+  "categories": ["health", "fitness", "food"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Моя панель",
+      "short_name": "Панель",
+      "description": "Открыть личный кабинет",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Начать опрос",
+      "short_name": "Опрос",
+      "description": "Создать новый план питания",
+      "url": "/survey/metabolism",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import {
   BasicSurveyInputLifestyle,
 } from "@workspace/api-client-react";
 import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const QUESTIONS = [
@@ -136,28 +136,30 @@ export default function Survey() {
 
   return (
     <Layout>
-      <div className="flex-1 bg-muted/20 py-12">
-        <div className="container max-w-2xl">
-          <div className="mb-8 space-y-1">
+      <div className="flex-1 bg-muted/20 py-6 sm:py-12">
+        <div className="container max-w-2xl px-4">
+          {/* Progress header */}
+          <div className="mb-6 sm:mb-8 space-y-1">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Метаболический анализ</span>
-              <span>
-                {step + 1} / {QUESTIONS.length}
-              </span>
+              <span className="font-medium">Метаболический анализ</span>
+              <span>{step + 1} / {QUESTIONS.length}</span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
 
-          <div className="bg-card border shadow-sm rounded-xl p-8 min-h-[420px] flex flex-col">
-            <h2 className="text-2xl font-bold mb-8 text-center">{currentQuestion.title}</h2>
+          {/* Question card */}
+          <div className="bg-card border shadow-sm rounded-xl p-5 sm:p-8 min-h-[280px] sm:min-h-[420px] flex flex-col">
+            <h2 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-center leading-snug">
+              {currentQuestion.title}
+            </h2>
 
             {currentQuestion.type === "choice" && (
-              <div className="space-y-3 flex-1">
+              <div className="space-y-2.5 sm:space-y-3 flex-1">
                 {currentQuestion.options?.map((option) => (
                   <button
                     key={option.value}
                     onClick={() => handleChoice(option.value)}
-                    className={`w-full text-left px-6 py-4 rounded-lg border transition-colors duration-150 hover:border-primary hover:bg-primary/5 ${
+                    className={`w-full text-left px-4 sm:px-6 py-3.5 sm:py-4 rounded-lg border transition-colors duration-150 text-sm sm:text-base hover:border-primary hover:bg-primary/5 active:bg-primary/10 ${
                       answers[currentQuestion.id as keyof BasicSurveyInput] === option.value
                         ? "border-primary bg-primary/10 font-medium"
                         : ""
@@ -170,8 +172,8 @@ export default function Survey() {
             )}
 
             {currentQuestion.type === "inputs" && (
-              <form onSubmit={handleInputsSubmit} className="space-y-5 flex-1 flex flex-col">
-                <div className="flex-1 space-y-5">
+              <form onSubmit={handleInputsSubmit} className="space-y-4 flex-1 flex flex-col">
+                <div className="flex-1 space-y-4 sm:space-y-5">
                   {currentQuestion.fields?.map((field) => (
                     <div key={field.id} className="space-y-1.5">
                       <label className="text-sm font-medium">{field.label}</label>
@@ -185,7 +187,7 @@ export default function Survey() {
                           (answers[field.id as keyof BasicSurveyInput] as number) || ""
                         }
                         required
-                        className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     </div>
                   ))}
@@ -202,14 +204,17 @@ export default function Survey() {
             )}
           </div>
 
+          {/* Back button */}
           {step > 0 && (
             <div className="mt-4 flex justify-center">
               <Button
                 variant="ghost"
                 onClick={() => setStep(step - 1)}
                 disabled={submitSurveyMutation.isPending}
+                className="text-muted-foreground"
               >
-                ← Назад
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Назад
               </Button>
             </div>
           )}
