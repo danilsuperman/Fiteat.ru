@@ -209,14 +209,14 @@ function Footer() {
             <p className="text-xs font-semibold text-foreground uppercase tracking-widest">Правовое</p>
             <ul className="space-y-2.5">
               {[
-                { label: "Политика конфиденциальности" },
-                { label: "Условия использования" },
-                { label: "Согласие на обработку данных" },
+                { href: "/privacy", label: "Политика конфиденциальности" },
+                { href: "/terms", label: "Условия использования" },
+                { href: "/consent", label: "Согласие на обработку данных" },
               ].map((l) => (
-                <li key={l.label}>
-                  <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                <li key={l.href}>
+                  <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     {l.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

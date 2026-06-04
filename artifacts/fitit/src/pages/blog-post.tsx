@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, ArrowRight, Clock, Calendar } from "lucide-react";
@@ -214,15 +215,31 @@ const POSTS: Post[] = [
   },
 ];
 
+function fmtDate(s: string) {
+  try { return new Date(s).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }); }
+  catch { return s; }
+}
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
-  const post = POSTS.find((p) => p.slug === slug);
+  const [apiPost, setApiPost] = useState<any>(null);
+  const [apiLoaded, setApiLoaded] = useState(false);
 
+  useEffect(() => {
+    if (!slug) return;
+    fetch(`/api/articles/${slug}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.title) setApiPost(d); })
+      .catch(() => {})
+      .finally(() => setApiLoaded(true));
+  }, [slug]);
+
+  const staticPost = POSTS.find((p) => p.slug === slug);
   const idx = POSTS.findIndex((p) => p.slug === slug);
   const prev = idx > 0 ? POSTS[idx - 1] : null;
   const next = idx < POSTS.length - 1 ? POSTS[idx + 1] : null;
 
-  if (!post) {
+  if (apiLoaded && !apiPost && !staticPost) {
     return (
       <Layout>
         <div className="py-24 text-center container px-4">
@@ -237,6 +254,22 @@ export default function BlogPost() {
     );
   }
 
+  if (!apiLoaded && !staticPost) {
+    return (
+      <Layout>
+        <div className="py-24 text-center container px-4">
+          <div className="w-8 h-8 border-2 border-border border-t-foreground rounded-full animate-spin mx-auto" />
+        </div>
+      </Layout>
+    );
+  }
+
+  const post = staticPost;
+  const imageUrl = apiPost?.image_url || null;
+  const videoUrl = apiPost?.video_url || null;
+  const imagePosition = apiPost?.image_position || "top";
+  const apiContent = apiPost?.content || null;
+
   return (
     <Layout>
       <div className="py-10 sm:py-16">
@@ -248,44 +281,79 @@ export default function BlogPost() {
             </button>
           </Link>
 
-          <header className="mb-10">
-            <div className="flex items-center gap-3 mb-4">
+          <header className="mb-8">
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider bg-secondary px-2.5 py-1 rounded-full">
-                {post.category}
+                {apiPost?.category || post?.category}
               </span>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                {post.date}
+                {apiPost?.published_at ? fmtDate(apiPost.published_at) : post?.date}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {post.readTime}
+                {apiPost?.read_time || post?.readTime}
               </div>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-snug">
-              {post.title}
+              {apiPost?.title || post?.title}
             </h1>
-            <p className="mt-4 text-muted-foreground text-base leading-relaxed">{post.excerpt}</p>
+            <p className="mt-4 text-muted-foreground text-base leading-relaxed">{apiPost?.excerpt || post?.excerpt}</p>
           </header>
 
+          {imageUrl && imagePosition === "top" && (
+            <div className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden mb-8 border border-border">
+              <img src={imageUrl} alt={apiPost?.title || post?.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+
           <div className="space-y-6 text-sm sm:text-base leading-relaxed">
-            {post.sections.map((s, i) => (
-              <div key={i}>
-                {s.heading && (
-                  <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 mt-8 first:mt-0">
-                    {s.heading}
-                  </h2>
-                )}
-                {s.text.split("\n").map((line, j) =>
-                  line.trim() ? (
-                    <p key={j} className="text-muted-foreground mb-2 last:mb-0">
-                      {line}
-                    </p>
-                  ) : null
-                )}
-              </div>
-            ))}
+            {apiContent ? (
+              apiContent.split("\n").map((line: string, i: number) => {
+                if (line.startsWith("## ")) return <h2 key={i} className="text-xl font-bold text-foreground mt-8 mb-3 first:mt-0">{line.slice(3)}</h2>;
+                if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold text-foreground mt-5 mb-2">{line.slice(4)}</h3>;
+                if (line.startsWith("- ")) return <li key={i} className="text-muted-foreground ml-4 list-disc">{line.slice(2)}</li>;
+                if (line.trim()) return <p key={i} className="text-muted-foreground mb-2">{line}</p>;
+                return <div key={i} className="h-2" />;
+              })
+            ) : (
+              post?.sections.map((s, i) => (
+                <div key={i}>
+                  {s.heading && (
+                    <h2 className="text-lg sm:text-xl font-bold text-foreground mb-3 mt-8 first:mt-0">
+                      {s.heading}
+                    </h2>
+                  )}
+                  {s.text.split("\n").map((line, j) =>
+                    line.trim() ? (
+                      <p key={j} className="text-muted-foreground mb-2 last:mb-0">{line}</p>
+                    ) : null
+                  )}
+                </div>
+              ))
+            )}
           </div>
+
+          {imageUrl && imagePosition === "bottom" && (
+            <div className="w-full h-64 sm:h-80 rounded-2xl overflow-hidden mt-8 border border-border">
+              <img src={imageUrl} alt={apiPost?.title || post?.title} className="w-full h-full object-cover" />
+            </div>
+          )}
+
+          {videoUrl && (
+            <div className="mt-8 rounded-2xl overflow-hidden border border-border">
+              {videoUrl.includes("youtube.com/embed") || videoUrl.includes("youtu.be") ? (
+                <iframe
+                  src={videoUrl}
+                  className="w-full aspect-video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video src={videoUrl} controls className="w-full aspect-video bg-black" />
+              )}
+            </div>
+          )}
 
           <div className="mt-12 pt-8 border-t border-border">
             <div className="bg-secondary/40 rounded-2xl p-6 text-center mb-10">

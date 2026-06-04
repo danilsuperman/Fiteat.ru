@@ -119,6 +119,8 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
   const [withAiChat, setWithAiChat] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
+  const [showAutoPayment, setShowAutoPayment] = useState(false);
+  const [autoPayment, setAutoPayment] = useState(true);
   const [promoInput, setPromoInput] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoDiscount, setPromoDiscount] = useState<number | null>(null);
@@ -149,7 +151,7 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
       const r = await fetch("/api/plans", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ duration: tier.duration, withAiChat }),
+        body: JSON.stringify({ duration: tier.duration, withAiChat, autoPayment }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Не удалось оформить план");
@@ -275,6 +277,34 @@ function PackageModal({ tier, onClose }: { tier: Tier; onClose: () => void }) {
             <p className="text-xs text-muted-foreground leading-relaxed">
               Алгоритм бесплатно перестроит план, если он вам не подойдёт
             </p>
+          </div>
+
+          {/* Auto-payment */}
+          <div>
+            <button
+              onClick={() => setShowAutoPayment(v => !v)}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              {autoPayment ? "Отключить автоплатёж" : "Подключить автоплатёж"}
+            </button>
+            {showAutoPayment && (
+              <div className="mt-2 p-3 bg-secondary/40 border border-border rounded-xl">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoPayment}
+                    onChange={e => setAutoPayment(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border cursor-pointer"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Автоматическое продление подписки</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      Подписка продлится автоматически по окончании срока. Отключить можно в личном кабинете в любой момент.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
           </div>
         </div>
 

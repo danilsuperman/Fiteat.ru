@@ -180,7 +180,7 @@ router.get("/admin/users", requireAdmin, requireRole("admin", "owner"), async (r
     const offset = Number(req.query.offset) || 0;
     const result = await pool.query(`
       SELECT u.id, u.name, u.email, u.created_at, u.last_login_at,
-             u.subscription_expires_at, u.discount_percent, u.notes,
+             u.subscription_expires_at, u.discount_percent, u.notes, u.auto_payment, u.has_ai_chat,
              COUNT(DISTINCT pl.id) as plan_count,
              COALESCE(SUM(pay.amount_kopecks),0) as total_paid_kopecks
       FROM users u
@@ -198,7 +198,7 @@ router.get("/admin/users", requireAdmin, requireRole("admin", "owner"), async (r
 
 router.patch("/admin/users/:id", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
   try {
-    const { discountPercent, notes, subscriptionDays } = req.body;
+    const { discountPercent, notes, subscriptionDays, autoPayment } = req.body;
     const id = req.params.id;
     const sets: string[] = [];
     const vals: any[] = [];
@@ -209,9 +209,10 @@ router.patch("/admin/users/:id", requireAdmin, requireRole("admin", "owner"), as
       sets.push(`subscription_expires_at = GREATEST(COALESCE(subscription_expires_at, NOW()), NOW()) + ($${i++} * INTERVAL '1 day')`);
       vals.push(Number(subscriptionDays));
     }
+    if (autoPayment !== undefined) { sets.push(`auto_payment=$${i++}`); vals.push(Boolean(autoPayment)); }
     if (sets.length === 0) { res.status(400).json({ error: "Нечего обновлять" }); return; }
     vals.push(id);
-    const result = await pool.query(`UPDATE users SET ${sets.join(",")} WHERE id=$${i} RETURNING id,name,email,discount_percent,notes,subscription_expires_at`, vals);
+    const result = await pool.query(`UPDATE users SET ${sets.join(",")} WHERE id=$${i} RETURNING id,name,email,discount_percent,notes,subscription_expires_at,auto_payment`, vals);
     if (!result.rows[0]) { res.status(404).json({ error: "Пользователь не найден" }); return; }
     res.json(result.rows[0]);
   } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
@@ -264,12 +265,12 @@ router.get("/admin/articles", requireAdmin, async (req, res) => {
 
 router.post("/admin/articles", requireAdmin, async (req, res) => {
   try {
-    const { title, slug, excerpt, content, category, readTime, isPublished } = req.body;
+    const { title, slug, excerpt, content, category, readTime, isPublished, imageUrl, videoUrl, imagePosition } = req.body;
     const admin = (req as any).admin as AdminJwtPayload;
     if (!title || !slug || !excerpt || !content || !category) { res.status(400).json({ error: "Заполните все поля" }); return; }
     const result = await pool.query(
-      "INSERT INTO articles (title,slug,excerpt,content,category,read_time,is_published,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
-      [title, slug, excerpt, content, category, readTime || "5 мин", isPublished !== false, admin.adminId]
+      "INSERT INTO articles (title,slug,excerpt,content,category,read_time,is_published,created_by,image_url,video_url,image_position) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *",
+      [title, slug, excerpt, content, category, readTime || "5 мин", isPublished !== false, admin.adminId, imageUrl||null, videoUrl||null, imagePosition||"top"]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
@@ -280,10 +281,10 @@ router.post("/admin/articles", requireAdmin, async (req, res) => {
 
 router.put("/admin/articles/:id", requireAdmin, async (req, res) => {
   try {
-    const { title, excerpt, content, category, readTime, isPublished } = req.body;
+    const { title, excerpt, content, category, readTime, isPublished, imageUrl, videoUrl, imagePosition } = req.body;
     const result = await pool.query(
-      "UPDATE articles SET title=$1,excerpt=$2,content=$3,category=$4,read_time=$5,is_published=$6 WHERE id=$7 RETURNING *",
-      [title, excerpt, content, category, readTime || "5 мин", isPublished !== false, req.params.id]
+      "UPDATE articles SET title=$1,excerpt=$2,content=$3,category=$4,read_time=$5,is_published=$6,image_url=$7,video_url=$8,image_position=$9 WHERE id=$10 RETURNING *",
+      [title, excerpt, content, category, readTime || "5 мин", isPublished !== false, imageUrl||null, videoUrl||null, imagePosition||"top", req.params.id]
     );
     if (!result.rows[0]) { res.status(404).json({ error: "Не найдено" }); return; }
     res.json(result.rows[0]);
@@ -359,6 +360,44 @@ router.patch("/admin/support-tickets/:id", requireAdmin, async (req, res) => {
     );
     if (!result.rows[0]) { res.status(404).json({ error: "Не найдено" }); return; }
     res.json(result.rows[0]);
+  } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
+});
+
+/* ─── Pages CMS ─── */
+router.get("/admin/pages", requireAdmin, async (req, res) => {
+  try { res.json((await pool.query("SELECT * FROM pages ORDER BY slug")).rows); }
+  catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
+});
+
+router.put("/admin/pages/:slug", requireAdmin, requireRole("admin", "owner"), async (req, res) => {
+  try {
+    const { title, content } = req.body;
+    const result = await pool.query(
+      "INSERT INTO pages (slug, title, content) VALUES ($1, $2, $3) ON CONFLICT (slug) DO UPDATE SET title=$2, content=$3, updated_at=NOW() RETURNING *",
+      [req.params.slug, title || req.params.slug, content || ""]
+    );
+    res.json(result.rows[0]);
+  } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
+});
+
+/* ─── Users ─── */
+router.get("/admin/users-list", requireAdmin, async (req, res) => {
+  try {
+    const search = (req.query.search as string) || "";
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const result = await pool.query(
+      `SELECT u.id, u.name, u.email, u.created_at, u.subscription_expires_at, u.discount_percent, u.notes, u.auto_payment, u.has_ai_chat,
+        COUNT(DISTINCT pl.id) as plan_count,
+        COALESCE(SUM(pay.amount_kopecks),0) as total_paid_kopecks
+       FROM users u
+       LEFT JOIN plans pl ON pl.user_id = u.id
+       LEFT JOIN payments pay ON pay.user_id = u.id AND pay.status = 'completed'
+       WHERE ($1 = '' OR u.name ILIKE $2 OR u.email ILIKE $2)
+       GROUP BY u.id ORDER BY u.created_at DESC LIMIT $3`,
+      [search, `%${search}%`, limit]
+    );
+    const total = (await pool.query("SELECT COUNT(*) FROM users WHERE ($1='' OR name ILIKE $2 OR email ILIKE $2)", [search, `%${search}%`])).rows[0].count;
+    res.json({ users: result.rows, total: Number(total) });
   } catch (err) { req.log.error(err); res.status(500).json({ error: "Ошибка сервера" }); }
 });
 

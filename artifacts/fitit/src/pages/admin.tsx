@@ -264,7 +264,7 @@ function UsersTab({ token }: { token: string }) {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ discountPercent: 0, notes: "", subscriptionDays: 0 });
+  const [editForm, setEditForm] = useState({ discountPercent: 0, notes: "", subscriptionDays: 0, autoPayment: true });
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
@@ -280,7 +280,7 @@ function UsersTab({ token }: { token: string }) {
 
   const openEdit = (u: any) => {
     setEditing(u);
-    setEditForm({ discountPercent: u.discount_percent || 0, notes: u.notes || "", subscriptionDays: 30 });
+    setEditForm({ discountPercent: u.discount_percent || 0, notes: u.notes || "", subscriptionDays: 30, autoPayment: u.auto_payment ?? true });
   };
 
   const saveEdit = async () => {
@@ -291,6 +291,7 @@ function UsersTab({ token }: { token: string }) {
         body: JSON.stringify({
           discountPercent: editForm.discountPercent,
           notes: editForm.notes,
+          autoPayment: editForm.autoPayment,
           ...(editForm.subscriptionDays > 0 ? { subscriptionDays: editForm.subscriptionDays } : {}),
         }),
       });
@@ -354,6 +355,11 @@ function UsersTab({ token }: { token: string }) {
                 className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             </div>
           </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={editForm.autoPayment} onChange={e => setEditForm(f => ({ ...f, autoPayment: e.target.checked }))}
+              className="w-4 h-4 rounded" />
+            <span className="text-sm">Автоплатёж включён</span>
+          </label>
           <div className="flex gap-2">
             <Button size="sm" className="rounded-xl" onClick={saveEdit}>Сохранить</Button>
             <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setEditing(null)}>Отмена</Button>
@@ -396,6 +402,7 @@ function UsersTab({ token }: { token: string }) {
                         {u.discount_percent > 0
                           ? <span className="text-xs font-semibold text-accent">{u.discount_percent}%</span>
                           : <span className="text-muted-foreground">—</span>}
+                        {u.auto_payment === false && <p className="text-xs text-muted-foreground mt-0.5">Автоплатёж: нет</p>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
@@ -716,13 +723,13 @@ function ArticlesTab({ token }: { token: string }) {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const emptyForm = { title: "", slug: "", excerpt: "", content: "", category: "Питание", readTime: "5 мин", isPublished: true };
+  const emptyForm = { title: "", slug: "", excerpt: "", content: "", category: "Питание", readTime: "5 мин", isPublished: true, imageUrl: "", videoUrl: "", imagePosition: "top" };
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(() => { apiFetch("/admin/articles", token).then(setArticles).catch(() => {}); }, [token]);
   useEffect(() => { load(); }, [load]);
 
-  const startEdit = (a: any) => { setEditing(a); setForm({ title: a.title, slug: a.slug, excerpt: a.excerpt, content: a.content, category: a.category, readTime: a.read_time, isPublished: a.is_published }); setShowForm(true); setError(""); };
+  const startEdit = (a: any) => { setEditing(a); setForm({ title: a.title, slug: a.slug, excerpt: a.excerpt, content: a.content, category: a.category, readTime: a.read_time, isPublished: a.is_published, imageUrl: a.image_url || "", videoUrl: a.video_url || "", imagePosition: a.image_position || "top" }); setShowForm(true); setError(""); };
   const startCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true); setError(""); };
   const slugify = (t: string) => t.toLowerCase().replace(/[^a-zа-я0-9\s]/g, "").replace(/\s+/g, "-").slice(0, 60);
   const f = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
@@ -791,6 +798,30 @@ function ArticlesTab({ token }: { token: string }) {
             <label className="text-xs font-medium text-muted-foreground">Содержание *</label>
             <textarea value={form.content} onChange={e => f("content", e.target.value)} required rows={8}
               className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1 col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">URL изображения</label>
+              <input value={form.imageUrl} onChange={e => f("imageUrl", e.target.value)} placeholder="https://..."
+                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Позиция</label>
+              <select value={form.imagePosition} onChange={e => f("imagePosition", e.target.value)}
+                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <option value="top">Вверху</option>
+                <option value="side">Сбоку</option>
+                <option value="bottom">Внизу</option>
+              </select>
+            </div>
+          </div>
+          {form.imageUrl && (
+            <img src={form.imageUrl} alt="Превью" className="h-32 w-full object-cover rounded-xl border border-border" onError={e => (e.currentTarget.style.display="none")} />
+          )}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">URL видео (YouTube embed или MP4)</label>
+            <input value={form.videoUrl} onChange={e => f("videoUrl", e.target.value)} placeholder="https://www.youtube.com/embed/..."
+              className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           </div>
           <div className="flex gap-2">
             <Button type="submit" size="sm" className="rounded-xl" disabled={loading}>{loading ? "Сохранение..." : editing ? "Сохранить" : "Опубликовать"}</Button>
@@ -1138,6 +1169,10 @@ function SnacksTab({ token }: { token: string }) {
               <div>
                 <label className="text-sm font-medium block mb-1.5">URL фото (необязательно)</label>
                 <input value={form.photoUrl} onChange={e => setForm({...form, photoUrl:e.target.value})} placeholder="https://..." className={INPUT} />
+                {form.photoUrl && (
+                  <img src={form.photoUrl} alt="Превью" className="mt-2 h-24 w-24 rounded-xl object-cover border border-border"
+                    onError={e => (e.currentTarget.style.display = "none")} />
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium block mb-1.5">Теги (через запятую)</label>
@@ -1151,6 +1186,105 @@ function SnacksTab({ token }: { token: string }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Pages Tab ─── */
+function PagesTab({ token }: { token: string }) {
+  const PAGE_SLUGS = [
+    { slug: "privacy", label: "Политика конфиденциальности" },
+    { slug: "terms", label: "Условия использования" },
+    { slug: "consent", label: "Согласие на обработку данных" },
+    { slug: "about", label: "О сервисе" },
+    { slug: "how-it-works", label: "Как это работает" },
+    { slug: "faq", label: "FAQ" },
+    { slug: "support-page", label: "Страница поддержки" },
+  ];
+  const [pages, setPages] = useState<Record<string, any>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    apiFetch("/admin/pages", token).then(data => {
+      const map: Record<string, any> = {};
+      data.forEach((p: any) => { map[p.slug] = p; });
+      setPages(map);
+    }).catch(() => {});
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+
+  const openEdit = (slug: string) => {
+    const p = pages[slug];
+    setEditing(slug);
+    setEditTitle(p?.title || PAGE_SLUGS.find(s => s.slug === slug)?.label || slug);
+    setEditContent(p?.content || "");
+    setError("");
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    setSaving(true); setError("");
+    try {
+      await apiFetch(`/admin/pages/${editing}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ title: editTitle, content: editContent }),
+      });
+      setEditing(null); load();
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold">Правовые страницы и контент</h2>
+      {editing ? (
+        <div className="border border-border rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold">{PAGE_SLUGS.find(s => s.slug === editing)?.label || editing}</p>
+            <button onClick={() => setEditing(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </div>
+          {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Заголовок страницы</label>
+            <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
+              className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Содержание (Markdown)</label>
+            <p className="text-xs text-muted-foreground">Используйте ## для заголовков, - для списков</p>
+            <textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={18}
+              className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" className="rounded-xl" onClick={save} disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</Button>
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setEditing(null)}>Отмена</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="border border-border rounded-2xl overflow-hidden">
+          {PAGE_SLUGS.map((p, idx) => (
+            <div key={p.slug} className={`flex items-center justify-between px-5 py-4 hover:bg-secondary/20 transition-colors ${idx < PAGE_SLUGS.length - 1 ? "border-b border-border" : ""}`}>
+              <div>
+                <p className="text-sm font-medium">{p.label}</p>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">/{p.slug}</p>
+                {pages[p.slug] && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Обновлено: {new Date(pages[p.slug].updated_at).toLocaleDateString("ru-RU")}
+                  </p>
+                )}
+              </div>
+              <button onClick={() => openEdit(p.slug)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+                <Edit2 className="h-3.5 w-3.5" /> Редактировать
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1308,6 +1442,7 @@ const TABS = [
   { id: "pricing",   label: "Цены",         icon: DollarSign,   roles: ["admin", "owner"] },
   { id: "reviews",   label: "Отзывы",       icon: Star,         roles: ["admin", "owner"] },
   { id: "snacks",    label: "Перекусы",     icon: Apple,        roles: ["admin", "owner"] },
+  { id: "pages",     label: "Страницы",     icon: FileText,     roles: ["admin", "owner"] },
   { id: "support",   label: "Поддержка",    icon: MessageCircle, roles: ["admin", "owner"] },
 ];
 
@@ -1365,6 +1500,7 @@ function AdminDashboard({ token, info, onLogout }: { token: string; info: any; o
         {activeTab === "pricing"   && <PricingTab   token={token} />}
         {activeTab === "reviews"   && <ReviewsTab   token={token} />}
         {activeTab === "snacks"    && <SnacksTab    token={token} />}
+        {activeTab === "pages"     && <PagesTab     token={token} />}
         {activeTab === "support"   && <SupportTab   token={token} />}
       </div>
     </div>

@@ -231,17 +231,23 @@ export default function Calculator() {
               </Button>
             </div>
 
-            {/* BMR + TDEE */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-border rounded-2xl p-5">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Базовый обмен (BMR)</p>
-                <p className="text-3xl font-bold">{result.bmr}</p>
-                <p className="text-xs text-muted-foreground mt-1">ккал/сутки</p>
+            {/* Key metrics row */}
+            <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
+                <span className="text-xs text-muted-foreground">Базовый обмен (BMR)</span>
+                <span className="text-lg font-bold">{result.bmr} <span className="text-xs font-normal text-muted-foreground">ккал</span></span>
               </div>
-              <div className="border border-border rounded-2xl p-5">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">С активностью (TDEE)</p>
-                <p className="text-3xl font-bold">{result.tdee}</p>
-                <p className="text-xs text-muted-foreground mt-1">ккал/сутки</p>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <span className="text-xs text-muted-foreground">С активностью (TDEE)</span>
+                <span className="text-lg font-bold">{result.tdee} <span className="text-xs font-normal text-muted-foreground">ккал</span></span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-foreground/5">
+                <span className="text-xs font-medium text-foreground">Целевые калории</span>
+                <span className="text-2xl font-bold text-foreground">{adjusted.targetCalories} <span className="text-xs font-normal text-muted-foreground">ккал</span></span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">ИМТ</span>
+                <span className={`text-lg font-bold ${getBmiColor(result.bmi)}`}>{result.bmi} <span className="text-xs font-normal text-muted-foreground">{result.bmiCategory}</span></span>
               </div>
             </div>
 
@@ -282,49 +288,30 @@ export default function Calculator() {
               </div>
             )}
 
-            {/* Target calories */}
-            <div className="border border-foreground bg-foreground text-background rounded-2xl p-6 space-y-4">
-              <div>
-                <p className="text-xs text-background/60 uppercase tracking-wider mb-1">Целевые калории в день</p>
-                <p className="text-5xl font-bold">{adjusted.targetCalories}</p>
-                <p className="text-sm text-background/60 mt-1">ккал</p>
+            {/* Macros */}
+            <div className="border border-border rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 bg-secondary/30 border-b border-border">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Распределение КБЖУ</p>
               </div>
-              <div className="space-y-2.5 pt-2 border-t border-background/20">
-                {[
-                  { label: "Белки", value: adjusted.proteins, color: "bg-blue-400" },
-                  { label: "Жиры",  value: adjusted.fats,    color: "bg-yellow-400" },
-                  { label: "Углеводы", value: adjusted.carbs, color: "bg-green-400" },
-                ].map((m) => (
-                  <div key={m.label}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-background/80">{m.label}</span>
-                      <span className="font-semibold">{m.value} г</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-background/20 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${m.color}`}
-                        style={{ width: `${Math.round((m.value / macroTotal) * 100)}%` }}
-                      />
-                    </div>
+              {[
+                { label: "Белки (Б)", value: adjusted.proteins, pct: Math.round((adjusted.proteins * 4 / (adjusted.proteins * 4 + adjusted.fats * 9 + adjusted.carbs * 4)) * 100), dot: "bg-blue-400" },
+                { label: "Жиры (Ж)", value: adjusted.fats, pct: Math.round((adjusted.fats * 9 / (adjusted.proteins * 4 + adjusted.fats * 9 + adjusted.carbs * 4)) * 100), dot: "bg-amber-400" },
+                { label: "Углеводы (У)", value: adjusted.carbs, pct: Math.round((adjusted.carbs * 4 / (adjusted.proteins * 4 + adjusted.fats * 9 + adjusted.carbs * 4)) * 100), dot: "bg-green-400" },
+              ].map((m, i, arr) => (
+                <div key={m.label} className={`flex items-center justify-between px-4 py-3 ${i < arr.length - 1 ? "border-b border-border" : ""}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-2.5 h-2.5 rounded-full ${m.dot} shrink-0`} />
+                    <span className="text-sm text-muted-foreground">{m.label}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* BMI + goal */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="border border-border rounded-2xl p-5">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">ИМТ</p>
-                <p className={`text-3xl font-bold ${getBmiColor(result.bmi)}`}>{result.bmi}</p>
-                <p className="text-xs text-muted-foreground mt-1">{result.bmiCategory}</p>
-              </div>
-              {needsSlider && (
-                <div className="border border-border rounded-2xl p-5">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">До цели</p>
-                  <p className="text-3xl font-bold">{result.weightToGoal} кг</p>
-                  <p className="text-xs text-muted-foreground mt-1">≈ {selectedMonths} мес. по вашему плану</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
+                      <div className={`h-full rounded-full ${m.dot}`} style={{ width: `${m.pct}%` }} />
+                    </div>
+                    <span className="text-sm font-semibold w-14 text-right">{m.value} г</span>
+                    <span className="text-xs text-muted-foreground w-8 text-right">{m.pct}%</span>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
 
             <div className="bg-secondary/40 border border-border rounded-2xl p-5 text-sm text-muted-foreground leading-relaxed">
@@ -338,6 +325,34 @@ export default function Calculator() {
                   Получить персональный план <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
+            </div>
+
+            {/* SEO block */}
+            <div className="border border-border rounded-2xl p-6 space-y-5 mt-2">
+              <div>
+                <h2 className="text-lg font-bold text-foreground mb-2">Что такое КБЖУ и как рассчитать норму?</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  КБЖУ — это аббревиатура для четырёх ключевых показателей питания: <strong className="text-foreground">калории, белки, жиры и углеводы</strong>. Правильный расчёт нормы КБЖУ — основа любого персонального плана питания.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { term: "Калории", def: "Единица измерения энергии. Ваша суточная норма зависит от веса, роста, возраста, пола и уровня активности (TDEE)." },
+                  { term: "Белки (Б)", def: "Строительный материал для мышц и тканей. Норма: 1.6–2.2 г на кг веса тела. При дефиците калорий — приоритет №1." },
+                  { term: "Жиры (Ж)", def: "Необходимы для гормонального баланса и усвоения жирорастворимых витаминов. Не менее 0.8–1 г на кг веса тела." },
+                  { term: "Углеводы (У)", def: "Основной источник энергии. Рассчитываются после белков и жиров — оставшаяся часть дневного калоража." },
+                ].map(({ term, def }) => (
+                  <div key={term} className="flex gap-3">
+                    <span className="text-xs font-semibold text-foreground bg-secondary px-2 py-1 rounded-lg h-fit shrink-0 mt-0.5">{term}</span>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{def}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong className="text-foreground">BMR</strong> (базальный метаболизм) — калории в состоянии покоя. <strong className="text-foreground">TDEE</strong> — суточный расход с учётом активности. Для похудения нужен дефицит 300–500 ккал от TDEE. Для набора массы — профицит.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -24,6 +24,9 @@ import HowItWorks from "@/pages/how-it-works";
 import Support from "@/pages/support";
 import About from "@/pages/about";
 import Profile from "@/pages/profile";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
+import ConsentPage from "@/pages/consent";
 import NotFound from "@/pages/not-found";
 
 export const queryClient = new QueryClient();
@@ -52,6 +55,9 @@ function Router() {
       <Route path="/support" component={Support} />
       <Route path="/about" component={About} />
       <Route path="/profile" component={Profile} />
+      <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/consent" component={ConsentPage} />
       <Route component={NotFound} />
     </Switch>
   );
