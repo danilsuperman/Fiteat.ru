@@ -5,7 +5,7 @@ import {
   BarChart3, Tag, FileText, LogOut, Plus, Trash2,
   Eye, EyeOff, X, Users, TrendingUp, Check,
   DollarSign, ChevronDown, ChevronUp, Search,
-  Calendar, Settings, RefreshCw, Edit2, Star, Apple, MessageCircle
+  Calendar, Settings, RefreshCw, Edit2, Star, Apple, MessageCircle, ArrowLeft
 } from "lucide-react";
 
 const API = (p: string) => `/api${p}`;
@@ -1193,20 +1193,49 @@ function SnacksTab({ token }: { token: string }) {
 }
 
 /* ─── Pages Tab ─── */
+const PAGE_META: { slug: string; label: string; url: string; hint: string }[] = [
+  { slug: "privacy",      label: "Политика конфиденциальности",        url: "/privacy",      hint: "Используйте ## для разделов, - для пунктов списка. Пример: ## 1. Общие положения" },
+  { slug: "terms",        label: "Условия использования",              url: "/terms",        hint: "Используйте ## для разделов, - для пунктов. Пример: ## 3. Регистрация и аккаунт" },
+  { slug: "consent",      label: "Согласие на обработку данных",       url: "/consent",      hint: "Используйте ## для разделов, - для пунктов." },
+  { slug: "about",        label: "О платформе",                        url: "/about",        hint: "## заголовок раздела, ### подзаголовок. Текст будет отображён в разделе «Наша миссия»." },
+  { slug: "how-it-works", label: "Как это работает",                   url: "/how-it-works", hint: "## 01. Шаг первый\nТекст шага.\n\n## 02. Шаг второй\nТекст." },
+  { slug: "faq",          label: "Вопросы и ответы",                   url: "/faq",          hint: "Каждый вопрос — это ## Заголовок?\nОтвет на следующей строке.\n\n## Следующий вопрос?\nОтвет." },
+  { slug: "support",      label: "Поддержка",                          url: "/support",      hint: "Первая строка текста — описание. Строка с @ — e-mail. Строка со словом «часов» — время ответа." },
+];
+
+function renderPagePreview(content: string): React.ReactNode[] {
+  if (!content.trim()) return [<p key="empty" className="text-xs text-muted-foreground italic">Пусто</p>];
+  const lines = content.split("\n");
+  const result: React.ReactNode[] = [];
+  let key = 0;
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.startsWith("## ")) {
+      result.push(<h2 key={key++} className="text-base font-bold text-foreground mt-5 mb-2 first:mt-0">{line.slice(3)}</h2>);
+    } else if (line.startsWith("### ")) {
+      result.push(<h3 key={key++} className="text-sm font-semibold text-foreground mt-3 mb-1">{line.slice(4)}</h3>);
+    } else if (line.startsWith("- ") || line.startsWith("• ")) {
+      const items: string[] = [];
+      while (i < lines.length && (lines[i].startsWith("- ") || lines[i].startsWith("• "))) { items.push(lines[i].slice(2)); i++; }
+      result.push(<ul key={key++} className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground ml-2 mb-2">{items.map((it, idx) => <li key={idx}>{it}</li>)}</ul>);
+      continue;
+    } else if (line.trim() === "") {
+      result.push(<div key={key++} className="h-1.5" />);
+    } else {
+      result.push(<p key={key++} className="text-xs text-muted-foreground leading-relaxed mb-1">{line}</p>);
+    }
+    i++;
+  }
+  return result;
+}
+
 function PagesTab({ token }: { token: string }) {
-  const PAGE_SLUGS = [
-    { slug: "privacy", label: "Политика конфиденциальности" },
-    { slug: "terms", label: "Условия использования" },
-    { slug: "consent", label: "Согласие на обработку данных" },
-    { slug: "about", label: "О сервисе" },
-    { slug: "how-it-works", label: "Как это работает" },
-    { slug: "faq", label: "FAQ" },
-    { slug: "support-page", label: "Страница поддержки" },
-  ];
   const [pages, setPages] = useState<Record<string, any>>({});
   const [editing, setEditing] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editTitle, setEditTitle] = useState("");
+  const [showPreview, setShowPreview] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1221,8 +1250,9 @@ function PagesTab({ token }: { token: string }) {
 
   const openEdit = (slug: string) => {
     const p = pages[slug];
+    const meta = PAGE_META.find(s => s.slug === slug);
     setEditing(slug);
-    setEditTitle(p?.title || PAGE_SLUGS.find(s => s.slug === slug)?.label || slug);
+    setEditTitle(p?.title || meta?.label || slug);
     setEditContent(p?.content || "");
     setError("");
   };
@@ -1240,51 +1270,106 @@ function PagesTab({ token }: { token: string }) {
     finally { setSaving(false); }
   };
 
+  const editingMeta = PAGE_META.find(s => s.slug === editing);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Правовые страницы и контент</h2>
+      <h2 className="text-lg font-semibold">Страницы сайта</h2>
+
       {editing ? (
-        <div className="border border-border rounded-2xl p-5 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">{PAGE_SLUGS.find(s => s.slug === editing)?.label || editing}</p>
-            <button onClick={() => setEditing(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <p className="text-sm font-semibold">{editingMeta?.label || editing}</p>
+              <a href={editingMeta?.url} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-muted-foreground hover:text-foreground font-mono flex items-center gap-1 underline underline-offset-2">
+                {editingMeta?.url} ↗
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowPreview(!showPreview)}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${showPreview ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                {showPreview ? "Скрыть превью" : "Показать превью"}
+              </button>
+            </div>
           </div>
+
           {error && <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>}
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Заголовок страницы</label>
             <input value={editTitle} onChange={e => setEditTitle(e.target.value)}
               className="flex h-10 w-full rounded-xl border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Содержание (Markdown)</label>
-            <p className="text-xs text-muted-foreground">Используйте ## для заголовков, - для списков</p>
-            <textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={18}
-              className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
+
+          {editingMeta?.hint && (
+            <div className="bg-secondary/50 rounded-xl px-4 py-3 border border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Формат для этой страницы:</p>
+              <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">{editingMeta.hint}</pre>
+            </div>
+          )}
+
+          <div className={`grid gap-4 ${showPreview ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-muted-foreground">Содержание (Markdown)</label>
+                <span className="text-xs text-muted-foreground">{editContent.length} симв.</span>
+              </div>
+              <textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={24}
+                className="flex w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y leading-relaxed"
+                placeholder="Начните вводить текст..." />
+            </div>
+
+            {showPreview && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Превью</label>
+                <div className="border border-border rounded-xl p-4 bg-background h-full overflow-y-auto min-h-[550px] max-h-[600px]">
+                  {renderPagePreview(editContent)}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" className="rounded-xl" onClick={save} disabled={saving}>{saving ? "Сохранение..." : "Сохранить"}</Button>
+
+          <div className="flex gap-2 pt-2 border-t border-border">
+            <Button size="sm" className="rounded-xl" onClick={save} disabled={saving}>
+              {saving ? "Сохранение..." : "Сохранить изменения"}
+            </Button>
             <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setEditing(null)}>Отмена</Button>
           </div>
         </div>
       ) : (
         <div className="border border-border rounded-2xl overflow-hidden">
-          {PAGE_SLUGS.map((p, idx) => (
-            <div key={p.slug} className={`flex items-center justify-between px-5 py-4 hover:bg-secondary/20 transition-colors ${idx < PAGE_SLUGS.length - 1 ? "border-b border-border" : ""}`}>
-              <div>
-                <p className="text-sm font-medium">{p.label}</p>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">/{p.slug}</p>
-                {pages[p.slug] && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Обновлено: {new Date(pages[p.slug].updated_at).toLocaleDateString("ru-RU")}
-                  </p>
-                )}
+          {PAGE_META.map((p, idx) => {
+            const dbPage = pages[p.slug];
+            const hasContent = dbPage && dbPage.content && dbPage.content.trim().length > 0;
+            return (
+              <div key={p.slug} className={`flex items-center justify-between px-5 py-4 hover:bg-secondary/20 transition-colors ${idx < PAGE_META.length - 1 ? "border-b border-border" : ""}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-sm font-medium">{p.label}</p>
+                    {hasContent ? (
+                      <span className="text-xs px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Заполнена</span>
+                    ) : (
+                      <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-muted-foreground border border-border">Не заполнена</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono">{p.url}</p>
+                  {dbPage?.updated_at && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Обновлено: {new Date(dbPage.updated_at).toLocaleString("ru-RU", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => openEdit(p.slug)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0 ml-4">
+                  <Edit2 className="h-3.5 w-3.5" /> Редактировать
+                </button>
               </div>
-              <button onClick={() => openEdit(p.slug)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
-                <Edit2 className="h-3.5 w-3.5" /> Редактировать
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

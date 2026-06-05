@@ -1,29 +1,8 @@
+import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout";
 import { Link } from "wouter";
-import { ArrowRight, Target, Users, Zap, Shield } from "lucide-react";
-
-const VALUES = [
-  {
-    icon: Target,
-    title: "Персонализация",
-    desc: "Никаких универсальных диет. Каждый план строится на реальных данных о вашем организме: метаболизм, активность, здоровье и предпочтения.",
-  },
-  {
-    icon: Zap,
-    title: "Наука, а не мода",
-    desc: "Все расчёты основаны на доказательной нутрициологии: формулы BMR, коэффициенты активности, физиологические нормы КБЖУ.",
-  },
-  {
-    icon: Users,
-    title: "Доступность",
-    desc: "Персональный нутрициолог стоит 3 000–10 000 ₽ в месяц. Мы даём тот же уровень персонализации за сотни рублей.",
-  },
-  {
-    icon: Shield,
-    title: "Безопасность данных",
-    desc: "Ваши данные хранятся в зашифрованном виде. Мы не передаём личные данные третьим лицам и не используем их для рекламы.",
-  },
-];
+import { ArrowRight } from "lucide-react";
+import { renderMarkdown } from "@/lib/markdown";
 
 const STATS = [
   { value: "2 347+", label: "планов составлено" },
@@ -32,7 +11,41 @@ const STATS = [
   { value: "5 мин", label: "время прохождения опроса" },
 ];
 
+const DEFAULT_CONTENT = `## Наша миссия
+
+Большинство людей, которые хотят изменить фигуру или улучшить самочувствие, сталкиваются с одной и той же проблемой: информации слишком много, она противоречива, а персонального совета не у кого спросить.
+
+Диеты из интернета работают не для всех. Калории без учёта макронутриентов — упрощение. Гормональный фон, качество сна, стресс — факторы, которые врач-нутрициолог обязательно учтёт, а бесплатный калькулятор — нет.
+
+Мы создали сервис, который объединяет клиническую методологию расчёта метаболизма с возможностями современного ИИ — чтобы каждый мог получить действительно персональный план питания за 5 минут.
+
+## Наши принципы
+
+### Персонализация
+Никаких универсальных диет. Каждый план строится на реальных данных о вашем организме: метаболизм, активность, здоровье и предпочтения.
+
+### Наука, а не мода
+Все расчёты основаны на доказательной нутрициологии: формулы BMR, коэффициенты активности, физиологические нормы КБЖУ.
+
+### Доступность
+Персональный нутрициолог стоит 3 000–10 000 ₽ в месяц. Мы даём тот же уровень персонализации за сотни рублей.
+
+### Безопасность данных
+Ваши данные хранятся в зашифрованном виде. Мы не передаём личные данные третьим лицам и не используем их для рекламы.`;
+
 export default function About() {
+  const [page, setPage] = useState<{ title: string; content: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/pages/about")
+      .then(r => r.json())
+      .then(d => { if (d?.content) setPage(d); })
+      .catch(() => {});
+  }, []);
+
+  const title = page?.title || "О платформе";
+  const content = page?.content || DEFAULT_CONTENT;
+
   return (
     <Layout>
       <div className="py-12 sm:py-20">
@@ -41,10 +54,10 @@ export default function About() {
           <div className="max-w-2xl mb-14 sm:mb-20">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Компания</p>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-5">
-              О платформе
+              {title}
             </h1>
             <p className="text-muted-foreground text-lg leading-relaxed">
-              ФИТИТ.ПРО — персональный цифровой нутрициолог. Мы делаем доказательное питание доступным для каждого, без дорогих консультаций и универсальных диет.
+              ФИТИТ.ПРО — персональный цифровой нутрициолог. Мы делаем доказательное питание доступным для каждого.
             </p>
           </div>
 
@@ -57,39 +70,8 @@ export default function About() {
             ))}
           </div>
 
-          <div className="mb-16">
-            <h2 className="text-2xl font-bold mb-8">Наша миссия</h2>
-            <div className="prose prose-sm max-w-none text-muted-foreground space-y-4">
-              <p className="text-base leading-relaxed">
-                Большинство людей, которые хотят изменить фигуру или улучшить самочувствие, сталкиваются с одной и той же проблемой: информации слишком много, она противоречива, а персонального совета не у кого спросить.
-              </p>
-              <p className="text-base leading-relaxed">
-                Диеты из интернета работают не для всех. Калории без учёта макронутриентов — упрощение. Гормональный фон, качество сна, стресс — факторы, которые врач-нутрициолог обязательно учтёт, а бесплатный калькулятор — нет.
-              </p>
-              <p className="text-base leading-relaxed">
-                Мы создали сервис, который объединяет клиническую методологию расчёта метаболизма с возможностями современного ИИ — чтобы каждый мог получить действительно персональный план питания за 5 минут.
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-16">
-            <h2 className="text-2xl font-bold mb-8">Наши принципы</h2>
-            <div className="grid sm:grid-cols-2 gap-5">
-              {VALUES.map((v) => {
-                const Icon = v.icon;
-                return (
-                  <div key={v.title} className="bg-background border border-border rounded-2xl p-6 flex gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-foreground/5 flex items-center justify-center shrink-0">
-                      <Icon className="h-5 w-5 text-foreground/70" />
-                    </div>
-                    <div>
-                      <p className="font-semibold mb-1">{v.title}</p>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{v.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="mb-16 space-y-1">
+            {renderMarkdown(content)}
           </div>
 
           <div className="bg-foreground rounded-2xl p-8 sm:p-12 text-center">

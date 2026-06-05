@@ -2,39 +2,7 @@ import { useEffect, useState } from "react";
 import { Layout } from "@/components/layout";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
-
-function renderMarkdown(text: string) {
-  const lines = text.split("\n");
-  const result: React.ReactNode[] = [];
-  let key = 0;
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line.startsWith("## ")) {
-      result.push(<h2 key={key++} className="text-xl font-bold text-foreground mt-8 mb-3">{line.slice(3)}</h2>);
-    } else if (line.startsWith("### ")) {
-      result.push(<h3 key={key++} className="text-base font-semibold text-foreground mt-5 mb-2">{line.slice(4)}</h3>);
-    } else if (line.startsWith("- ") || line.startsWith("• ")) {
-      const items: string[] = [];
-      while (i < lines.length && (lines[i].startsWith("- ") || lines[i].startsWith("• "))) {
-        items.push(lines[i].slice(2));
-        i++;
-      }
-      result.push(
-        <ul key={key++} className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2 mb-3">
-          {items.map((item, idx) => <li key={idx}>{item}</li>)}
-        </ul>
-      );
-      continue;
-    } else if (line.trim() === "") {
-      result.push(<div key={key++} className="h-2" />);
-    } else {
-      result.push(<p key={key++} className="text-sm text-muted-foreground leading-relaxed mb-2">{line}</p>);
-    }
-    i++;
-  }
-  return result;
-}
+import { renderMarkdown } from "@/lib/markdown";
 
 export default function TermsPage() {
   const [content, setContent] = useState<string | null>(null);
@@ -60,9 +28,13 @@ export default function TermsPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{title}</h1>
           </div>
           <div className="border border-border rounded-2xl p-6 sm:p-8 bg-background">
-            {content ? renderMarkdown(content) : (
+            {content ? (
+              <div className="space-y-1">{renderMarkdown(content)}</div>
+            ) : (
               <div className="space-y-3">
-                {[...Array(8)].map((_, i) => <div key={i} className="h-4 bg-secondary rounded animate-pulse" style={{ width: `${70 + (i % 3) * 10}%` }} />)}
+                {[...Array(10)].map((_, i) => (
+                  <div key={i} className="h-4 bg-secondary rounded animate-pulse" style={{ width: `${65 + (i % 4) * 9}%` }} />
+                ))}
               </div>
             )}
           </div>
